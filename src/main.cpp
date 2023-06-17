@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <cctype>
+#include <list>
+#include <cstdint>
 #include "participant.h"
 #include "manager.h"
+#include "discovery.h"
+#include "management.h"
+#include "monitoring.h"
+#include "helper.h"
 
 using namespace std;
 
