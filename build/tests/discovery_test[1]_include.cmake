@@ -1,0 +1,5 @@
+if(EXISTS "/home/thales/projects/SleepManager/build/tests/discovery_test[1]_tests.cmake")
+  include("/home/thales/projects/SleepManager/build/tests/discovery_test[1]_tests.cmake")
+else()
+  add_test(discovery_test_NOT_BUILT discovery_test_NOT_BUILT)
+endif()

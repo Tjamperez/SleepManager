@@ -1,0 +1,6 @@
+/home/thales/projects/SleepManager/build/CMakeFiles/SleepManagerMain.dir
+/home/thales/projects/SleepManager/build/CMakeFiles/edit_cache.dir
+/home/thales/projects/SleepManager/build/CMakeFiles/rebuild_cache.dir
+/home/thales/projects/SleepManager/build/tests/CMakeFiles/discovery_test.dir
+/home/thales/projects/SleepManager/build/tests/CMakeFiles/edit_cache.dir
+/home/thales/projects/SleepManager/build/tests/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/discovery_test.dir/discovery_test.cpp.o CMakeFiles/discovery_test.dir/__/src/discovery.cpp.o -o discovery_test  -lgtest_main /usr/lib/x86_64-linux-gnu/libgtest.a -lpthread 
