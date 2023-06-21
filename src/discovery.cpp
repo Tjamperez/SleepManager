@@ -1,4 +1,4 @@
-#include "discovery.h"
+#include "../include/discovery.h"
 
 void discovery_main(void)
 {

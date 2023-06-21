@@ -1,8 +1,7 @@
-#include "participant.h"
+#include "../include/participant.h"
+#include "../include/interface.h"
 
 void participant_main(void)
 {
-    /*
-     * TODO: implement this function
-     */
+    interface_main();
 }

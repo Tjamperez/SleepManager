@@ -1,8 +1,9 @@
 SRC_DIR = src
 OBJ_DIR = obj
+INCLD_DIR = include
 PROG_PATH = sleep_server
 
-INCLUDE_FILES = $(wildcard $(SRC_DIR)/*.h)
+INCLUDE_FILES = $(wildcard $(INCLD_DIR)/*.h)
 OBJ_FILES = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*.cpp))
 
 LINK_FLAGS =

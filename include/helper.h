@@ -1,22 +1,21 @@
 #ifndef HELPER_H_
 #define HELPER_H_
 
-//------------------  Definitions useful for multiple files ------------------//
-#define HOSTNAME_SIZE 10
-#define MAC_ADRESS_SIZE 17
-#define IP_ADRESS_SIZE 15
+#include <string>
+using namespace std;
 
+//------------------  Definitions useful for multiple files ------------------//
 #define AWAKEN 1
 #define ASLEEP 0
 
 typedef struct Work_Station{
-    char hostname[HOSTNAME_SIZE];
-    char mac_adress[MAC_ADRESS_SIZE];
-    char ip_address[IP_ADRESS_SIZE];
+    string hostname;
+    string mac_adress;
+    string ip_address;
     int status; //AWAKEN or ASLEEP
 }Work_Station;
 
-list<Work_Station> participants;
+//list<Work_Station> participants;
 
 //Messages exhanged between processes
 typedef struct __packet{
@@ -30,7 +29,6 @@ typedef struct __packet{
 class Service //Superclass for subservices
 {
     protected:
-        
     
 };
 
