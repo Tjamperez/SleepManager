@@ -1,3 +1,4 @@
+#include "../include/discovery.h"
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,25 +9,25 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-
-#define PORT 4000
+#include <time.h>
 
 
 int client_udp(int argc, char *argv[])
 {
+	clock_t start = clock();//começo do programa
     int bcast_sock, n;
 	unsigned int length;
 	struct sockaddr_in serv_addr, from;
 	struct hostent *server;
-	
 	char buffer[256];
+
 	if (argc < 2) {
 		fprintf(stderr, "usage %s hostname\n", argv[0]);
 		exit(0);
 
 	}
-	
-	server = gethostbyname(argv[1]);
+
+	server = gethostbyname(argv[1]); // nome do server/manager
 	if (server == NULL) {
         fprintf(stderr,"ERROR, no such host\n");
         exit(0);
@@ -34,7 +35,7 @@ int client_udp(int argc, char *argv[])
 	
 	if ((bcast_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 		printf("ERROR opening socket");
-    int broadcast_enable = 1;
+    int broadcast_enable = 1; // cliente manda em broadcast pra ver quem é o lider
     if(setsockopt(bcast_sock,SOL_SOCKET,SO_BROADCAST,&broadcast_enable,sizeof(broadcast_enable)) < 0){
         printf("Error setting broadcast"); 
     }
@@ -42,63 +43,77 @@ int client_udp(int argc, char *argv[])
 	serv_addr.sin_family = AF_INET;     
 	serv_addr.sin_port = htons(PORT);    
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);  
-
+	bzero(&(serv_addr.sin_zero), 8);
+	n = 0;
 	printf("Enter the message: ");
 	bzero(buffer, 256);
 	fgets(buffer, 256, stdin);
-
-	n = sendto(bcast_sock, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	if (n < 0) 
-		printf("ERROR sendto");
-	
-	length = sizeof(struct sockaddr_in);
-	n = recvfrom(bcast_sock, buffer, 256, 0, (struct sockaddr *) &from, &length);
-	if (n < 0)
-		printf("ERROR recvfrom");
-
-	printf("Got an ack: %s\n", buffer);
+	while(1){
+		n = sendto(bcast_sock, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+		if (n < 0) {
+			printf("ERROR sendto");
+		}
+		length = sizeof(struct sockaddr_in);
+		int timeoutInMicroseconds = 1;
+ 		while (!hasTimeoutPassed(start, timeoutInMicroseconds)) {
+        	// checamos se recebeu algo
+        	if (n = recvfrom(bcast_sock, buffer, 256, 0, (struct sockaddr *) &from, &length) > 0) {
+            	// recebeu quebra o loop e vai pro manager
+				printf("Received the answer\n");
+				break;
+            	//manda pro manager()??????
+        	}
+			else{
+				if (n < 0){
+					printf("ERROR recvfrom");
+				}
+			}
+        	// continua esperando timeout
+    	}
+	}
 	
 	close(bcast_sock);
 	return 0;
 }
-
-int server_udp(int argc, char *argv[])
+int hasTimeoutPassed(clock_t start, int timeoutInMicroseconds)
 {
-    int bcast_sock, n;
+    clock_t current = clock();
+    clock_t elapsed = (current - start) / (CLOCKS_PER_SEC / 1000000);  // Convert ticks to microseconds
+    return (elapsed >= timeoutInMicroseconds);
+}
+
+int manager_udp(int argc, char *argv[])
+{
+    int peer2peer, n;
 	socklen_t clilen;
 	struct sockaddr_in serv_addr, cli_addr;
 	char buf[256];
 		
-    if ((bcast_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1) 
+    if ((peer2peer = socket(AF_INET, SOCK_DGRAM, 0)) == -1) 
 		printf("ERROR opening socket");
-    int broadcast_enable = 1;
-    if(setsockopt(bcast_sock,SOL_SOCKET,SO_BROADCAST,&broadcast_enable,sizeof(broadcast_enable)) < 0){
-        printf("Error setting broadcast"); 
-    }
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	bzero(&(serv_addr.sin_zero), 8);    
 	 
-	if (bind(bcast_sock, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) 
+	if (bind(peer2peer, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) 
 		printf("ERROR on binding");
 	
 	clilen = sizeof(struct sockaddr_in);
 	
 	while (1) {
 		/* receive from socket */
-		n = recvfrom(bcast_sock, buf, 256, 0, (struct sockaddr *) &cli_addr, &clilen);
+		n = recvfrom(peer2peer, buf, 256, 0, (struct sockaddr *) &cli_addr, &clilen);
 		if (n < 0) 
 			printf("ERROR on recvfrom");
 		printf("Received a datagram: %s\n", buf);
 		
 		/* send to socket */
-		n = sendto(bcast_sock, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+		n = sendto(peer2peer, "I am the manager\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
 		if (n  < 0) 
 			printf("ERROR on sendto");
 	}
 	
-	close(bcast_sock);
+	close(peer2peer);
 	return 0;
 }
