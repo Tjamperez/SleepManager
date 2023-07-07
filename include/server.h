@@ -17,6 +17,9 @@
 
 #define PORT 4000
 #define MAX_TRIES 3
+#define SLEEP_SERVICE_DISCOVERY 1
+#define SLEEP_SERVICE_BROADCAST 2
+#define SLEEP_STATUS_REQUEST 3
 
 class Server_Connection
 {
@@ -34,7 +37,7 @@ class Server_Connection
         int start_server();
 
     protected:
-        int hasTimeoutPassed( int timeoutInMicroseconds);
+        bool hasTimeoutPassed( int timeoutInMicroseconds);
 };
 
 #endif

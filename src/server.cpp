@@ -13,57 +13,52 @@ Server_Connection::Server_Connection(char *hostname)
 
 int Server_Connection::start_client()
 {
-    this->start = clock();
-    char buffer[256];
-
-    if (this->server == NULL) 
-    {
-        fprintf(stderr,"ERROR, no such host\n");
-        exit(0);
-    };	
-
-    int bcast_sock;
-    if ((bcast_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-        printf("ERROR opening socket");
-
-    int broadcast_enable = 1; // cliente manda em broadcast pra ver quem é o lider
-    if(setsockopt(bcast_sock,SOL_SOCKET,SO_BROADCAST,&broadcast_enable,sizeof(broadcast_enable)) < 0)
-        printf("Error setting broadcast"); 
-
-    bzero(&(this->serv_addr.sin_zero), 8);
-    int n = 0;
-    printf("Enter the message: ");
-    bzero(buffer, 256);
-    fgets(buffer, 256, stdin);
-
+    // while(!hasTimeoutPassed(timeoutInMicroseconds) //commenting for now because it seems to need adjustments 
     while(1)
     {
-        n = sendto(bcast_sock, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-        if (n < 0) 
+        this->start = clock();
+        char buffer[256];
+
+        if (this->server == NULL) 
+        {
+            fprintf(stderr,"ERROR, no such host\n");
+            exit(0);
+        };	
+
+        int bcast_sock;
+        if ((bcast_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+            printf("ERROR opening socket");
+
+        int broadcast_enable = 1; // cliente manda em broadcast pra ver quem é o lider
+        if(setsockopt(bcast_sock,SOL_SOCKET,SO_BROADCAST,&broadcast_enable,sizeof(broadcast_enable)) < 0)
+            printf("Error setting broadcast"); 
+
+        bzero(&(this->serv_addr.sin_zero), 8);
+        int sent = 0, received = 0;
+        printf("Enter the message: ");
+        bzero(buffer, 256);
+        fgets(buffer, 256, stdin);
+
+        sent = sendto(bcast_sock, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+        if (sent < 0) 
             printf("ERROR sendto");
 
         unsigned int length = sizeof(struct sockaddr_in);
         int timeoutInMicroseconds = 1;
 
-        while (!hasTimeoutPassed(timeoutInMicroseconds)) {
-            // checamos se recebeu algo
-            if (n = recvfrom(bcast_sock, buffer, 256, 0, (struct sockaddr *) &from, &length) > 0) 
-            {
-                // recebeu quebra o loop e vai pro manager
-                printf("Received the answer\n");
-                break;
-                //manda pro manager()??????
-            }
-            else
-            {
-                if (n < 0)
-                    printf("ERROR recvfrom");
-            };
-            // continua esperando timeout
+        if (received = recvfrom(bcast_sock, buffer, 256, 0, (struct sockaddr *) &from, &length) > 0) 
+        {
+            // recebeu quebra o loop e vai pro manager
+            printf("Received the answer\n");
+            //break;
+            //manda pro manager()??????
         }
-    }
+        else if (received < 0)
+            printf("ERROR recvfrom"); 
+        // continua esperando timeout
+        close(bcast_sock);
     
-    close(bcast_sock);
+    };
     return 0;
 };
 
@@ -101,7 +96,7 @@ int Server_Connection::start_server()
     return 0;
 };
 
-int Server_Connection::hasTimeoutPassed( int timeoutInMicroseconds){
+bool Server_Connection::hasTimeoutPassed( int timeoutInMicroseconds){
     clock_t current = clock();
     clock_t elapsed = (current - this->start) / (CLOCKS_PER_SEC / 1000000);  // Convert ticks to microseconds
     return (elapsed >= timeoutInMicroseconds);
