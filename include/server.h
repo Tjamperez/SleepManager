@@ -43,7 +43,7 @@ class Server_Connection
         char * hostname;
 
         bool hasTimeoutPassed( int timeoutInMicroseconds);
-        Packet create_packet(uint16_t type, const char* _payload);
+        Packet create_packet(uint16_t type, string _payload);
         string packet_to_string(Packet packet);
         Packet string_to_packet(string packet_str);
 };

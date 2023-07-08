@@ -20,19 +20,9 @@ typedef struct __packet{
     uint16_t seqn; //Sequence number
     uint16_t length; //Payload length
     uint16_t ip;
-    //uint16_t timestamp; // Data timestamp
-    //const char* _payload; //Message information
+    uint16_t timestamp; // Data timestamp
     string _payload;
 } Packet;
-
-// class Packet
-// {
-//     protected:
-//         Packet_Struct packet;
-
-//     public:
-//         Packet(uint16_t type, uint16_t seqn, uint16_t length, uint16_t timestamp, const char* _payload);
-// };
 
 
 #endif

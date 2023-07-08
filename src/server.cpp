@@ -36,42 +36,33 @@ int Server_Connection::start_client()
 
         bzero(&(this->serv_addr.sin_zero), 8);
         int sent = 0, received = 0;
-        //cout << "Enter the message: " << endl;
-        // bzero(buffer, 256);
-        // fgets(buffer, 256, stdin);
 
         Packet packet_sent = create_packet(SLEEP_SERVICE_DISCOVERY, FIND_MANAGER);
-        string packet_sent_str = packet_to_string(packet_sent); //String is easier to parse but must be converted to char when using in sendto and recvfrom
-
-        cout << "String packet being sent: " << packet_sent_str << endl;
-        cout << "String packet converted to char *: " << packet_sent_str.c_str() << endl;
+        string packet_sent_str = packet_to_string(packet_sent);
 
         sent = sendto(bcast_sock, packet_sent_str.c_str(), packet_sent_str.length(), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
         if (sent < 0) 
             cout << "ERROR sendto" << endl;
 
-        cout << "bytes sent = " << sent << endl;
         unsigned int length = sizeof(struct sockaddr_in);
         int timeoutInMicroseconds = 1;
 
-        Packet packet_received;
         char buff[10000];
-
         if(&serv_addr == NULL)
             cout << "serv_addr NULL" << endl;
 
-        if (received = recvfrom(bcast_sock, buff, sizeof(buff), 0, (struct sockaddr *) &from, &length) > 0) 
+        if (received = recvfrom(bcast_sock, buff, 10000, 0, (struct sockaddr *) &from, &length) > 0) 
         {
             // recebeu quebra o loop e vai pro manager
+            Packet packet_received;
             cout << "Received the answer: " << buff << endl;
-            //packet_received = string_to_packet(buff); // causes a segmentation fault because buff is empty so far
+            packet_received = string_to_packet(buff);
             //break;
             //manda pro manager()??????
 
         }
         else if (received < 0)
             cout << "ERROR recvfrom" << endl; 
-        // continua esperando timeout
         close(bcast_sock);
     
     };
@@ -99,16 +90,19 @@ int Server_Connection::start_server()
     {
         bzero(buff, 10000);
         /* receive from socket */
-        received = recvfrom(peer2peer, (void *) buff, strlen(buff), 0, (struct sockaddr *) &cli_addr, &clilen);
+        received = recvfrom(peer2peer, buff, 10000, 0, (struct sockaddr *) &cli_addr, &clilen);
         if (received < 0) 
             cout << "ERROR on recvfrom"  << endl;
         
         cout << "String packet received: " <<  buff << endl;
-        Packet packet_received;
-        //packet_received = string_to_packet(buff);
+        
+        Packet packet_received = string_to_packet(buff); 
 
+        Packet packet_sent = create_packet(SLEEP_SERVICE_DISCOVERY, MANAGER_FOUND);
+        string packet_sent_str = packet_to_string(packet_sent); //String is easier to parse but must be converted to char when using in sendto and recvfrom
+        
         /* send to socket */
-        sent = sendto(peer2peer, "I am the manager\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+        sent = sendto(peer2peer, packet_sent_str.c_str(), packet_sent_str.length(), 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
         if (sent < 0) 
             cout << "ERROR on sendto" << endl;
     }
@@ -124,15 +118,15 @@ bool Server_Connection::hasTimeoutPassed( int timeoutInMicroseconds){
 };
 
 // ----------------- Move this to a separate class -----------------
-Packet Server_Connection::create_packet(uint16_t type, const char* _payload)
+Packet Server_Connection::create_packet(uint16_t type, string _payload)
 {
     Packet packet;
 
     packet.type = type;
     this->seqn++;
     packet.seqn = this->seqn;
-    packet.length = strlen(_payload);
-    //packet.timestamp = 0; //for now
+    packet.length = _payload.length();
+    packet.timestamp = (uint16_t) 0; //for now
     packet._payload = _payload;
 
     return packet;
@@ -145,7 +139,8 @@ string Server_Connection::packet_to_string(Packet packet)
     packet_str += to_string(packet.type);
     packet_str += "|" + to_string(packet.seqn);
     packet_str += "|" + to_string(packet.length);
-    //packet_str += "|" + packet.timestamp;
+    packet_str += "|" + packet.timestamp;
+    packet_str += "|" + to_string(packet.length);
     packet_str += "|" + packet._payload;
 
     return packet_str;
@@ -161,8 +156,8 @@ Packet Server_Connection::string_to_packet(string packet_str)
     packet.seqn = atoi(token);
     token = strtok(NULL, "|");
     packet.length = (uint16_t) atoi(token);
-    //token = strtok(NULL, "|");
-    //packet.timestamp = (uint16_t) atoi(token);
+    token = strtok(NULL, "|");
+    packet.timestamp = (uint16_t) atoi(token);
     token = strtok(NULL, "|");
     packet._payload = token;
     
