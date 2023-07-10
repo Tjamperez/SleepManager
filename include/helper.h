@@ -3,6 +3,8 @@
 
 #include <string>
 #include <list>
+#include <cstdint>
+
 using namespace std;
 //------------------  Definitions useful for multiple files ------------------//
 #define AWAKEN 1
