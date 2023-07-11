@@ -46,6 +46,7 @@ class Server_Connection
         Packet create_packet(uint16_t type, string _payload, bool is_manager);
         string packet_to_string(Packet packet);
         Packet string_to_packet(string packet_str);
+        int get_mac_ip();
 };
 
 #endif
