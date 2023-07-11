@@ -118,30 +118,40 @@ void Server_Connection::start_server()
     close(peer2peer);
 };
 
-int Server_Connection::get_mac_ip()
+char *Server_Connection::get_mac()
 {
     struct ifreq ifr;
+    char *mac_address_hex;
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    // Get IP address
-    ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, "docker0", IFNAMSIZ - 1);
-    ioctl(fd, SIOCGIFADDR, &ifr);
-    close(fd);
-    printf("IP address: %s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
     // Get Mac Adress
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, "docker0", IFNAMSIZ - 1);
     ioctl(fd, SIOCGIFHWADDR, &ifr);
     close(fd);
-
+    mac_address_hex = (char *)ifr.ifr_hwaddr.sa_data;
     printf("MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n", (unsigned char)ifr.ifr_hwaddr.sa_data[0], (unsigned char)ifr.ifr_hwaddr.sa_data[1],
            (unsigned char)ifr.ifr_hwaddr.sa_data[2], (unsigned char)ifr.ifr_hwaddr.sa_data[3], (unsigned char)ifr.ifr_hwaddr.sa_data[4],
            (unsigned char)ifr.ifr_hwaddr.sa_data[5]);
 
-    return (0);
+    return (mac_address_hex);
 }
 
+char *Server_Connection::get_ip()
+{
+    struct ifreq ifr;
+    char *ip_address;
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    // Get IP address
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpy(ifr.ifr_name, "docker0", IFNAMSIZ - 1);
+    ioctl(fd, SIOCGIFADDR, &ifr);
+    close(fd);
+    ip_address = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    printf("IP address: %s\n", ip_address);
+
+    return (ip_address);
+}
 bool Server_Connection::hasTimeoutPassed( int timeoutInMicroseconds){
     clock_t current = clock();
     clock_t elapsed = (current - this->start) / (CLOCKS_PER_SEC / 1000000);  // Convert ticks to microseconds

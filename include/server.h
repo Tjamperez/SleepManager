@@ -14,6 +14,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #define PORT 4000
 #define BUFFER_SIZE 10000
@@ -46,7 +49,8 @@ class Server_Connection
         Packet create_packet(uint16_t type, string _payload, bool is_manager);
         string packet_to_string(Packet packet);
         Packet string_to_packet(string packet_str);
-        int get_mac_ip();
+        char* get_mac();
+        char* get_ip();
 };
 
 #endif
