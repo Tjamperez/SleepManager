@@ -169,8 +169,8 @@ Packet Server_Connection::create_packet(uint16_t type, string _payload, bool is_
     packet.length = _payload.length();
     packet.timestamp = (uint16_t) 0; //for now
     packet._payload = _payload;
-    //packet.mac_adress = ; //for now
-    packet.ip_address = this->work_station.ip_address;
+    packet.mac_adress = get_mac(); //for now
+    packet.ip_address = get_ip();
     packet.hostname = this->work_station.hostname;
     packet.is_manager = is_manager;
 
@@ -187,7 +187,7 @@ string Server_Connection::packet_to_string(Packet packet)
     packet_str += "|" + to_string(packet.timestamp);
     packet_str += "|" + packet._payload;
     packet_str += "|" + packet.ip_address;
-    //packet_str += "|" + packet.mac_adress;
+    packet_str += "|" + packet.mac_adress;
     packet_str += "|" + packet.hostname;
     packet_str += "|" + to_string(packet.is_manager);
 
@@ -210,8 +210,8 @@ Packet Server_Connection::string_to_packet(string packet_str)
     packet._payload = token;
     token = strtok(NULL, "|");
     packet.ip_address = token;
-    //token = strtok(NULL, "|");
-    //packet.mac_adress = token;
+    token = strtok(NULL, "|");
+    packet.mac_adress = token;
     token = strtok(NULL, "|");
     packet.hostname = token;
     token = strtok(NULL, "|");
