@@ -10,12 +10,14 @@ using namespace std;
 
 typedef struct Work_Station{
     string hostname;
-    string mac_adress;
+    string mac_address;
     string ip_address;
-    int status; //AWAKEN or ASLEEP
+    int status; //AWAKEN, ASLEEP or UNKNOWN
+    bool is_manager;
 }Work_Station;
 
 //list<Work_Station> participants;
+
 
 //Messages exhanged between processes
 typedef struct __packet{
@@ -23,13 +25,11 @@ typedef struct __packet{
     uint16_t seqn; //Sequence number
     uint16_t length; //Payload length
     uint16_t timestamp; // Data timestamp
-    const char* _payload; //Message information
+    string _payload;
+    string mac_address;
+    string ip_address;
+    string hostname;
+    bool is_manager;
+    int status; //AWAKEN, ASLEEP or UNKNOWN
 } Packet;
-
-class Service //Superclass for subservices
-{
-    protected:
-    
-};
-
 #endif
