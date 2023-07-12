@@ -19,6 +19,10 @@ class WorkStation {
         IpAddress ip_address;
         string hostname;
         Status status;
+
+        WorkStation();
+
+        static WorkStation localhost();
 };
 
 class WorkStationTable {

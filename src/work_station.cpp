@@ -1,6 +1,91 @@
 #include "../include/work_station.h"
+#include "../include/io_exception.h"
 #include <tuple>
 #include <stdexcept>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <net/if.h>
+#include <limits.h>
+#include <algorithm>
+#include <ifaddrs.h>
+#include <cstring>
+
+WorkStation::WorkStation(): mac_address {0}, ip_address {0}
+{
+}
+
+WorkStation WorkStation::localhost()
+{
+    WorkStation work_station;
+
+    char hostname_c[HOST_NAME_MAX + 1] = {0};
+    if (gethostname(hostname_c, HOST_NAME_MAX + 1) < 0) {
+        throw IOException("gethostname");
+    }
+    work_station.hostname = hostname_c;
+
+    struct addrinfo addrinfo_hints = {0};
+    struct addrinfo *addr_list;
+    if (getaddrinfo(hostname_c, nullptr, &addrinfo_hints, &addr_list) < 0) {
+        throw IOException("getaddrinfo for finding ipv4");
+    }
+    struct addrinfo *addr_curr = addr_list;
+    bool found_ipv4 = false;
+    while (addr_curr != nullptr && !found_ipv4) {
+        if (addr_curr->ai_family == AF_INET) {
+            copy_n(
+                addr_curr->ai_addr->sa_data,
+                4,
+                work_station.ip_address.begin()
+            );
+            found_ipv4 = true;
+        }
+    }
+    freeaddrinfo(addr_list);
+
+    if (found_ipv4) {
+        struct ifaddrs *ifaddr_list;
+        getifaddrs(&ifaddr_list);
+        struct ifaddrs *ifaddr_curr = ifaddr_list;
+        bool found_mac = false;
+        while (ifaddr_curr != nullptr && !found_mac) {
+            int fd = socket(AF_INET, SOCK_DGRAM, 0);
+            struct ifreq ifreq;
+            if (fd < 0) {
+                throw IOException("socket for finding MAC");
+            }
+            strcpy(ifreq.ifr_name, ifaddr_curr->ifa_name);
+            if (ioctl(fd, SIOCGIFADDR, &ifreq) >= 0) {
+                struct sockaddr_in *inet_addr =
+                    (struct sockaddr_in *) &ifreq.ifr_addr;
+                IpAddress if_ip_addr;
+                copy_n(
+                    (uint8_t *) &inet_addr->sin_addr.s_addr,
+                    4,
+                    if_ip_addr.begin()
+                );
+                if (if_ip_addr == work_station.ip_address) {
+                    if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
+                        throw IOException("get MAC address");
+                    }
+                    copy_n(
+                        (uint8_t *) &ifreq.ifr_hwaddr.sa_data,
+                        6,
+                        work_station.mac_address.begin()
+                    );
+                    found_mac = true;
+                }
+            }
+        }
+        freeifaddrs(ifaddr_list);
+    }
+
+
+    return work_station;
+}
 
 class WriteLockGuard {
     private:

@@ -125,7 +125,7 @@ char *Server_Connection::get_mac()
     // Get Mac Adress
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, "enp1s0", IFNAMSIZ - 1);
+    strncpy(ifr.ifr_name, "", IFNAMSIZ - 1);
     ioctl(fd, SIOCGIFHWADDR, &ifr);
     close(fd);
     mac_address_hex = (char *)ifr.ifr_hwaddr.sa_data;
