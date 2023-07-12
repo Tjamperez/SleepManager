@@ -2,6 +2,9 @@
 #define HELPER_H_
 
 #include <string>
+#include <list>
+#include <cstdint>
+
 using namespace std;
 
 //------------------  Definitions useful for multiple files ------------------//
@@ -12,12 +15,11 @@ typedef struct Work_Station{
     string hostname;
     string mac_address;
     string ip_address;
-    int status; //AWAKEN, ASLEEP or UNKNOWN
+    int status; //AWAKEN or ASLEEP
     bool is_manager;
 }Work_Station;
 
 //list<Work_Station> participants;
-
 
 //Messages exhanged between processes
 typedef struct __packet{
@@ -33,3 +35,4 @@ typedef struct __packet{
     int status; //AWAKEN, ASLEEP or UNKNOWN
 } Packet;
 #endif
+

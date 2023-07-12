@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <iostream>
 #include <cstdint>
+#include <iostream>
+#include <cstdint>
+#include <iostream>
 #include "../include/participant.h"
 #include "../include/manager.h"
 #include "../include/server.h"

@@ -1,4 +1,5 @@
 #include "../include/manager.h"
+#include "../include/server.h"
 
 void manager_main(void)
 {

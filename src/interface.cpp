@@ -1,25 +1,65 @@
-#include "../include/interface.h"
+// #include "../include/interface.h"
 
-int interface_main()
-{
-    Interface interface;
-    
-    //promise and future are used to retrieve values from functions/methods executed in threads
-    promise<string> promise_terminal_input;
-    future<string> future_terminal_input = promise_terminal_input.get_future();
-  
-    //syntax for creating threads for class methods:
-    //thread <thread_name> (&<class::method>,<class_instance>,<promise_object>)
-    thread terminal_input(&Interface::get_terminal_input, interface, &promise_terminal_input);
-  
-    //retrieving value from get_terminal_input after terminal_input thread has been executed
-    cout<<future_terminal_input.get()<<endl;
-  
-    //thread show_participants(&Interface::show_participants, interface, participants);
-    
-    //safely terminate threads
-    terminal_input.detach();
-    //show_participants.detach();
+// Interface::Interface(
+//     bool is_participant,
+//     shared_ptr<WorkStationTable> participants)
+// {
+//     this->is_participant = is_participant;
+//     this->participants = participants;
+// };
 
-    return 0;
-}
+// //Get terminal input and validate it according to station (participant or manager)
+// void Interface::terminal()
+// {
+//     bool valid_input = false;
+    
+//     while (valid_input == false)
+//     {
+//         vector<string> input_vec;
+//         string terminal_input;
+
+//         getline(cin,terminal_input);
+//         transform(terminal_input.begin(), terminal_input.end(), terminal_input.begin(), ::toupper);
+
+//         int space_position = terminal_input.find(" ");
+//         string cmd = terminal_input.substr(0, space_position);
+//         string cmd_argument = terminal_input.substr(space_position+1);
+
+//         if (this->is_participant)
+//         {
+//             if (cmd == EXIT)
+//                 valid_input = true;
+//             else
+//                 cout << "The only valid command for participant station is 'EXIT'" << endl;
+//         }
+//         else
+//         {
+//             if (cmd == WAKEUP && cmd_argument != cmd) //if no hostname is informed, no argument will have been found in the terminal command and substrings will be equal
+//             {
+//                 string hostname = cmd_argument;
+
+//                 //wakeup(hostname,&this->participants); //Not a real method, just writing out program flow
+//                 show_participants(); //Show updated participants list
+
+//                 valid_input = true;
+//             }
+//             else
+//                 cout << "The only valid command for manager station is 'WAKEUP <hostname>'" << endl;
+//         };
+//     };
+
+// };
+
+// void Interface::show_participants()
+// {
+//     /*
+//     * Show participants
+//     */
+// };
+
+// void Interface::show_manager()
+// {
+//     /*
+//     * Show manager station
+//     */
+// };
