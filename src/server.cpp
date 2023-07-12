@@ -18,7 +18,10 @@ Server_Connection::Server_Connection()
 	string ip_address = inet_ntoa(* address);
 
     this->work_station.hostname = this->hostname;
-    this->work_station.ip_address = parse_ip_address(ip_address);
+    try {
+        this->work_station.ip_address = parse_ip_address(ip_address);
+    } catch (exception exception) {
+    }
     this->work_station.status = WorkStation::AWAKEN;
 };
 
