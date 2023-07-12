@@ -17,7 +17,7 @@ istream& operator >>(istream& input_stream, MacAddress& address)
     bool first = true;
     ios_base::fmtflags fmtflags = input_stream.flags();
     input_stream >> hex >> noshowbase;
-    for (auto it = address.end(); it != address.begin(); it--) {
+    for (auto it = address.rbegin(); it != address.rend(); it++) {
         if (!first) {
             char ch;
             input_stream >> ch;
@@ -28,7 +28,7 @@ istream& operator >>(istream& input_stream, MacAddress& address)
             }
         }
         first = false;
-        input_stream >> *(it - 1);
+        input_stream >> *it;
     }
     input_stream.flags(fmtflags);
     return input_stream;
@@ -39,7 +39,7 @@ istream& operator >>(istream& input_stream, IpAddress& address)
     bool first = true;
     ios_base::fmtflags fmtflags = input_stream.flags();
     input_stream >> dec >> noshowbase;
-    for (auto it = address.end(); it != address.begin(); it--) {
+    for (auto it = address.rbegin(); it != address.rend(); it++) {
         if (!first) {
             char ch;
             input_stream >> ch;
@@ -50,7 +50,7 @@ istream& operator >>(istream& input_stream, IpAddress& address)
             }
         }
         first = false;
-        input_stream >> *(it - 1);
+        input_stream >> *it;
     }
     input_stream.flags(fmtflags);
     return input_stream;
@@ -61,12 +61,12 @@ ostream& operator <<(ostream& output_stream, MacAddress const& address)
     bool first = true;
     ios_base::fmtflags fmtflags = output_stream.flags();
     output_stream << hex << noshowbase;
-    for (auto it = address.cend(); it != address.cbegin(); it--) {
+    for (auto it = address.crbegin(); it != address.crend(); it++) {
         if (!first) {
             output_stream << ":";
         }
         first = false;
-        output_stream << *(it - 1);
+        output_stream << *it;
     }
     output_stream.flags(fmtflags);
     return output_stream;
@@ -77,12 +77,12 @@ ostream& operator <<(ostream& output_stream, IpAddress const& address)
     bool first = true;
     ios_base::fmtflags fmtflags = output_stream.flags();
     output_stream << dec << noshowbase;
-    for (auto it = address.cend(); it != address.cbegin(); it--) {
+    for (auto it = address.crbegin(); it != address.crend(); it++) {
         if (!first) {
             output_stream << ".";
         }
         first = false;
-        output_stream << *(it - 1);
+        output_stream << *it;
     }
     output_stream.flags(fmtflags);
     return output_stream;

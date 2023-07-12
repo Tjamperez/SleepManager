@@ -1,6 +1,8 @@
 #include "../include/interface.h"
 
-Interface::Interface(bool is_participant, list<Work_Station> participants)
+Interface::Interface(
+    bool is_participant,
+    shared_ptr<WorkStationTable> participants)
 {
     this->is_participant = is_participant;
     this->participants = participants;

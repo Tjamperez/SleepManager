@@ -6,16 +6,7 @@
 #include <cstdint>
 
 using namespace std;
-//------------------  Definitions useful for multiple files ------------------//
-#define AWAKEN 1
-#define ASLEEP 0
 
-typedef struct Work_Station{
-    string hostname;
-    string mac_adress;
-    string ip_address;
-    int status; //AWAKEN or ASLEEP
-}Work_Station;
 //Messages exhanged between processes
 typedef struct __packet{
     uint16_t type; //Package type (p.ex. DATA | CMD)

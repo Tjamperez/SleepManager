@@ -13,11 +13,11 @@ using MacAddress = array<uint8_t, 6>;
 using IpAddress = array<uint8_t, 4>;
 
 class InvalidAddressException: public exception {
-private:
-    string message;
-public:
-    InvalidAddressException(string message_);
-    virtual char const *what() const noexcept;
+    private:
+        string message;
+    public:
+        InvalidAddressException(string message_);
+        virtual char const *what() const noexcept;
 };
 
 istream& operator >>(istream& input_stream, MacAddress& address);

@@ -6,7 +6,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "../include/helper.h"
+#include <memory>
+#include "../include/work_station.h"
 
 #define EXIT "EXIT"
 #define WAKEUP "WAKEUP"
@@ -15,13 +16,16 @@ using namespace std;
 class Interface{
     protected:
         bool is_participant;
-        list<Work_Station> participants;
+        shared_ptr<WorkStationTable> participants;
 
         void show_participants();
         void show_manager();
   
     public:
-        Interface(bool is_participant, list<Work_Station> participants);
+        Interface(
+            bool is_participant,
+            shared_ptr<WorkStationTable> participants
+        );
         void terminal();
 };
 

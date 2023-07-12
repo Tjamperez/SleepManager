@@ -3,6 +3,7 @@
 
 #include "../include/discovery.h"
 #include "../include/helper.h"
+#include "../include/work_station.h"
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -43,7 +44,7 @@ class Server_Connection
         struct hostent *server;
         uint16_t seqn; //Sequence number used in packets
         string hostname;
-        Work_Station work_station;
+        WorkStation work_station;
 
         bool hasTimeoutPassed( int timeoutInMicroseconds);
         Packet create_packet(uint16_t type, string _payload, bool is_manager);
