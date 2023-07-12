@@ -14,14 +14,10 @@ Server_Connection::Server_Connection()
     this->serv_addr.sin_addr.s_addr = INADDR_ANY;
     this->seqn = 0;
 
-    in_addr * address = (in_addr * )server->h_addr;
-	string ip_address = inet_ntoa(* address);
-
-    this->work_station.hostname = this->hostname;
-    try {
-        this->work_station.ip_address = parse_ip_address(ip_address);
-    } catch (exception exception) {
+    for (size_t i = 0; i < this->work_station.ip_address.size(); i++) {
+        this->work_station.ip_address[i] = server->h_addr[i];
     }
+
     this->work_station.status = WorkStation::AWAKEN;
 };
 
@@ -129,13 +125,15 @@ char *Server_Connection::get_mac()
     // Get Mac Adress
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family = AF_INET;
-    strncpy(ifr.ifr_name, "docker0", IFNAMSIZ - 1);
+    strncpy(ifr.ifr_name, "enp1s0", IFNAMSIZ - 1);
     ioctl(fd, SIOCGIFHWADDR, &ifr);
     close(fd);
     mac_address_hex = (char *)ifr.ifr_hwaddr.sa_data;
-    printf("MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n", (unsigned char)ifr.ifr_hwaddr.sa_data[0], (unsigned char)ifr.ifr_hwaddr.sa_data[1],
-           (unsigned char)ifr.ifr_hwaddr.sa_data[2], (unsigned char)ifr.ifr_hwaddr.sa_data[3], (unsigned char)ifr.ifr_hwaddr.sa_data[4],
-           (unsigned char)ifr.ifr_hwaddr.sa_data[5]);
+    for (size_t i = 0; i < this->work_station.mac_address.size(); i++) {
+        this->work_station.mac_address[i] = mac_address_hex[i];
+    }
+
+    cout << "MAC address: " << this->work_station.mac_address << endl;
 
     return (mac_address_hex);
 }
@@ -151,7 +149,7 @@ char *Server_Connection::get_ip()
     ioctl(fd, SIOCGIFADDR, &ifr);
     close(fd);
     ip_address = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-    printf("IP address: %s\n", ip_address);
+    cout << "IP address: " << render_ip_address(this->work_station.ip_address) << endl;
 
     return (ip_address);
 }

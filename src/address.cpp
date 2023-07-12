@@ -1,6 +1,7 @@
 #include "../include/address.h"
 #include <iterator>
 #include <sstream>
+#include <iomanip>
 
 InvalidAddressException::InvalidAddressException(string message_):
     message(message_)
@@ -17,7 +18,7 @@ istream& operator >>(istream& input_stream, MacAddress& address)
     bool first = true;
     ios_base::fmtflags fmtflags = input_stream.flags();
     input_stream >> hex >> noshowbase;
-    for (auto it = address.rbegin(); it != address.rend(); it++) {
+    for (auto it = address.begin(); it != address.end(); it++) {
         if (!first) {
             char ch;
             input_stream >> ch;
@@ -28,7 +29,9 @@ istream& operator >>(istream& input_stream, MacAddress& address)
             }
         }
         first = false;
-        input_stream >> *it;
+        unsigned byte;
+        input_stream >> byte;
+        *it = byte;
     }
     input_stream.flags(fmtflags);
     return input_stream;
@@ -39,7 +42,7 @@ istream& operator >>(istream& input_stream, IpAddress& address)
     bool first = true;
     ios_base::fmtflags fmtflags = input_stream.flags();
     input_stream >> dec >> noshowbase;
-    for (auto it = address.rbegin(); it != address.rend(); it++) {
+    for (auto it = address.begin(); it != address.end(); it++) {
         if (!first) {
             char ch;
             input_stream >> ch;
@@ -50,7 +53,9 @@ istream& operator >>(istream& input_stream, IpAddress& address)
             }
         }
         first = false;
-        input_stream >> *it;
+        unsigned byte;
+        input_stream >> byte;
+        *it = byte;
     }
     input_stream.flags(fmtflags);
     return input_stream;
@@ -61,12 +66,12 @@ ostream& operator <<(ostream& output_stream, MacAddress const& address)
     bool first = true;
     ios_base::fmtflags fmtflags = output_stream.flags();
     output_stream << hex << noshowbase;
-    for (auto it = address.crbegin(); it != address.crend(); it++) {
+    for (auto it = address.cbegin(); it != address.cend(); it++) {
         if (!first) {
             output_stream << ":";
         }
         first = false;
-        output_stream << *it;
+        output_stream << setfill('0') << setw(2) << (unsigned) *it;
     }
     output_stream.flags(fmtflags);
     return output_stream;
@@ -77,12 +82,12 @@ ostream& operator <<(ostream& output_stream, IpAddress const& address)
     bool first = true;
     ios_base::fmtflags fmtflags = output_stream.flags();
     output_stream << dec << noshowbase;
-    for (auto it = address.crbegin(); it != address.crend(); it++) {
+    for (auto it = address.cbegin(); it != address.cend(); it++) {
         if (!first) {
             output_stream << ".";
         }
         first = false;
-        output_stream << *it;
+        output_stream << (unsigned) *it;
     }
     output_stream.flags(fmtflags);
     return output_stream;
