@@ -23,6 +23,12 @@ Server_Connection::Server_Connection(bool is_manager)
     this->is_manager = is_manager;
     this->active = true;
     this->status_update = NO_CHANGE;
+    this->socket_is_bound = false;
+    this->server_socket = get_socket();
+    this->socket_options_set = false;
+
+    if(!this->is_manager)
+        this->bound_socket = get_bound_socket(serv_addr);
 };
 
 void Server_Connection::start()
@@ -178,13 +184,15 @@ void Server_Connection::start_client(uint16_t packet_type,string _payload)
             exit(0);
         };	
 
-        int bcast_sock;
-        if ((bcast_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-            cout << "ERROR opening socket";
+        int bcast_sock = this->server_socket;
+        set_socket_option();
+        // int bcast_sock;
+        // if ((bcast_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+        //     cout << "ERROR opening socket";
 
-        int broadcast_enable = 1; // cliente manda em broadcast pra ver quem é o lider
-        if(setsockopt(bcast_sock,SOL_SOCKET,SO_BROADCAST,&broadcast_enable,sizeof(broadcast_enable)) < 0)
-            cout << "Error setting broadcast"; 
+        // int broadcast_enable = 1; // cliente manda em broadcast pra ver quem é o lider
+        // if(setsockopt(bcast_sock,SOL_SOCKET,SO_BROADCAST,&broadcast_enable,sizeof(broadcast_enable)) < 0)
+        //     cout << "Error setting broadcast"; 
 
         bzero(&(this->serv_addr.sin_zero), 8);
         int sent = 0, received = 0;
@@ -192,7 +200,9 @@ void Server_Connection::start_client(uint16_t packet_type,string _payload)
         Packet packet_sent = create_packet(packet_type, _payload);
         string packet_sent_str = packet_to_string(packet_sent);
 
+        cout << "socket" << bcast_sock << endl;
         sent = sendto(bcast_sock, packet_sent_str.c_str(), packet_sent_str.length(), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+        perror("sendto:");
         if (sent < 0) 
             cout << "ERROR sendto" << endl;
 
@@ -208,7 +218,6 @@ void Server_Connection::start_client(uint16_t packet_type,string _payload)
             // recebeu quebra o loop e vai pro manager
             Packet packet_received;
             cout << "Received the answer: " << buff << endl;
-            //packet_received = string_to_packet(buff);
             process_message(buff);
             //break;
             //manda pro manager()??????
@@ -221,26 +230,65 @@ void Server_Connection::start_client(uint16_t packet_type,string _payload)
     };
 };
 
+void Server_Connection::set_socket_option()
+{
+    int broadcast_enable = 1;
+
+    if(this->socket_options_set = false)
+    {
+        if(setsockopt(this->server_socket,SOL_SOCKET,SO_BROADCAST,&broadcast_enable,sizeof(broadcast_enable)) < 0)
+            cout << "Error setting broadcast"; 
+        
+        this->socket_options_set = true;
+    };
+};
+
+int Server_Connection::get_socket()
+{
+    int fd = 0;
+
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) 
+        cout << "ERROR opening socket" << endl;
+    
+    return fd;
+};
+
+int Server_Connection::get_bound_socket(struct sockaddr_in serv_addr)
+{
+
+    int fd = this->server_socket;
+
+    bzero(&(serv_addr.sin_zero), 8);    
+
+    if (bind(fd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) 
+            cout << "ERROR on binding" << endl;
+    
+    return fd;
+};
+
 //Participant
 void Server_Connection::start_server(uint16_t packet_type,string _payload)
 {
-    while (this->active) 
-    {
+    // while (this->active) 
+    // {
 
     int peer2peer, sent,received;
     socklen_t clilen;
     struct sockaddr_in cli_addr;
     char buff[BUFFER_SIZE];
         
-    if ((peer2peer = socket(AF_INET, SOCK_DGRAM, 0)) == -1) 
-        cout << "ERROR opening socket" << endl;
+    // if ((peer2peer = socket(AF_INET, SOCK_DGRAM, 0)) == -1) 
+    //     cout << "ERROR opening socket" << endl;
 
-    bzero(&(serv_addr.sin_zero), 8);    
+    // bzero(&(serv_addr.sin_zero), 8);    
     
-    if (bind(peer2peer, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) 
-        cout << "ERROR on binding" << endl;
+    // if (bind(peer2peer, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) 
+    //     cout << "ERROR on binding" << endl;
+
+    peer2peer = this->bound_socket;
     
-    // cout << "chegou aqui. peer2peer: " << peer2peer << endl;
+    while (this->active) 
+    {
     // clilen = sizeof(struct sockaddr_in);
     
     // this->work_station.is_manager = true;
@@ -273,9 +321,9 @@ char *Server_Connection::get_mac()
 {
     struct ifreq ifr;
     char *mac_address_hex;
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    int fd = this->server_socket;
+    // int fd = socket(AF_INET, SOCK_DGRAM, 0);
     // Get Mac Adress
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, "docker0", IFNAMSIZ - 1);
     ioctl(fd, SIOCGIFHWADDR, &ifr);
@@ -295,7 +343,8 @@ char *Server_Connection::get_ip()
 {
     struct ifreq ifr;
     char *ip_address;
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    // int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    int fd = this->server_socket;
     // Get IP address
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, "docker0", IFNAMSIZ - 1);
@@ -320,7 +369,7 @@ Work_Station Server_Connection::process_message(char packet_string[BUFFER_SIZE])
     bool found_station_is_manager;
     Work_Station participant;
 
-    if (received_packet.type = SLEEP_SERVICE_DISCOVERY)
+    if (received_packet.type == SLEEP_SERVICE_DISCOVERY)
     {
         if (received_packet._payload == MANAGER_FOUND)
             found_station_is_manager = true;
@@ -332,7 +381,7 @@ Work_Station Server_Connection::process_message(char packet_string[BUFFER_SIZE])
         add_participant(participant);
         show_participants();
     }
-    else if (received_packet.type = SLEEP_STATUS_REQUEST)
+    else if (received_packet.type == SLEEP_STATUS_REQUEST)
     {
         if (received_packet._payload == SENDING_STATUS_UPDATE)
             // if (received_packet.status != UNKNOWN)
@@ -342,7 +391,7 @@ Work_Station Server_Connection::process_message(char packet_string[BUFFER_SIZE])
             // }
             this->status_update = received_packet.status;
     }
-    else if (received_packet.type = SLEEP_SERVICE_EXIT)
+    else if (received_packet.type == SLEEP_SERVICE_EXIT)
     {
         //TODO
     };

@@ -19,8 +19,6 @@ typedef struct Work_Station{
     bool is_manager;
 }Work_Station;
 
-//list<Work_Station> participants;
-
 //Messages exhanged between processes
 typedef struct __packet{
     uint16_t type; //Package type (p.ex. DATA | CMD)

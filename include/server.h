@@ -58,6 +58,11 @@ class Server_Connection
         bool is_manager;
         bool active;
         uint16_t status_update;
+        bool socket_is_bound;
+        bool socket_options_set;
+        int bound_socket;
+        int server_socket;
+        int socket_option;
 
         bool hasTimeoutPassed( int timeoutInMicroseconds);
         Packet create_packet(uint16_t type, string _payload);
@@ -73,6 +78,9 @@ class Server_Connection
         void interface();
         void terminal_cmds();
         void show_participants();
+        int get_bound_socket(struct sockaddr_in serv_addr);
+        int get_socket();
+        void set_socket_option();
 };
 
 #endif
