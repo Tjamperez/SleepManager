@@ -7,6 +7,18 @@
 
 using namespace std;
 
+//------------------  Definitions useful for multiple files ------------------//
+#define AWAKEN 1
+#define ASLEEP 0
+
+typedef struct Work_Station{
+    string hostname;
+    string mac_address;
+    string ip_address;
+    int status; //AWAKEN or ASLEEP
+    bool is_manager;
+}Work_Station;
+
 //Messages exhanged between processes
 typedef struct __packet{
     uint16_t type; //Package type (p.ex. DATA | CMD)
@@ -14,11 +26,11 @@ typedef struct __packet{
     uint16_t length; //Payload length
     uint16_t timestamp; // Data timestamp
     string _payload;
-    string mac_adress;
+    string mac_address;
     string ip_address;
     string hostname;
     bool is_manager;
+    int status; //AWAKEN, ASLEEP or UNKNOWN
 } Packet;
-
-
 #endif
+
