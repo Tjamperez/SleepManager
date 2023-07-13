@@ -1,6 +1,9 @@
 #ifndef DISCOVERY_H_
 #define DISCOVERY_H_
 
-void discovery_main(void);
+#include <memory>
+#include "../include/work_station.h"
+
+void discovery_main(shared_ptr<WorkStationTable> work_station_table);
 
 #endif

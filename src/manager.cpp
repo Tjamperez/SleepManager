@@ -1,7 +1,6 @@
 #include "../include/work_station.h"
 #include "../include/manager.h"
 #include "../include/interface.h"
-#include "../include/server.h"
 
 void manager_main(void)
 {

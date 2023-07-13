@@ -23,7 +23,7 @@ class NodeAddresses {
         void load_mac();
     public:
         NodeAddresses();
-        static NodeAddresses localhost();
+        static NodeAddresses load_host();
 };
 
 class InvalidAddressException: public exception {

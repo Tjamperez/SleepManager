@@ -12,8 +12,7 @@
 
 #define PACKET_BUF_SIZE 4096
 
-UdpSocket::UdpSocket(IpAddress bind_to_ip, uint16_t bind_to_port):
-    fd(-1)
+UdpSocket::UdpSocket(IpAddress bind_to_ip): fd(-1)
 {
     socket(AF_INET, SOCK_DGRAM, 0);
     if (this->fd < 0) {
@@ -78,12 +77,14 @@ void UdpSocket::send(
 }
 
 void UdpSocket::send(
-    Packet packet,
+    Packet const& packet,
     IpAddress dest_ip_address,
     uint16_t dest_port
 ) const
 {
-    string message = packet.serialize();
+    PacketSerializer serializer;
+    packet.serialize(serializer);
+    string message = serializer.finish();
     this->send(message, dest_ip_address, dest_port);
 }
 
@@ -94,29 +95,49 @@ size_t UdpSocket::receive(
     uint16_t dest_port
 ) const
 {
-    struct sockaddr_in sockaddr;
-    socklen_t socklen;
-
-    ssize_t res = recvfrom(
-        this->fd,
-        buffer,
-        capacity,
-        0,
-        (struct sockaddr *) &sockaddr,
-        &socklen
-    );
+    ssize_t res = recvfrom(this->fd, buffer, capacity, 0, nullptr, nullptr);
     if (res < 0) {
         throw IOException("recvfrom");
     }
     return res;
 }
 
-Packet UdpSocket::receive(IpAddress dest_ip_address, uint16_t dest_port) const
+void UdpSocket::receive(
+    Packet &packet,
+    IpAddress dest_ip_address,
+    uint16_t dest_port
+) const
 {
-    uint8_t buffer[PACKET_BUF_SIZE + 1];
-    size_t read =
-        this->receive(buffer, PACKET_BUF_SIZE, dest_ip_address, dest_port);
-    buffer[read] = 0;
-    string message = (char *) buffer;
-    return Packet::deserialize(message);
+    size_t buf_size = packet.max_recv_heuristics();
+    std::string message(buf_size, '\0');
+    size_t read = this->receive(
+        (uint8_t *) message.data(), buf_size,
+        dest_ip_address,
+        dest_port
+    );
+    message.resize(read);
+    PacketDeserializer deserializer(message);
+    packet.deserialize(deserializer);
+}
+
+void UdpSocket::enable_broadcast() const
+{
+    int enabled = 1;
+    int status = setsockopt(
+        this->fd, SOL_SOCKET, SO_BROADCAST, &enabled, sizeof(enabled)
+    );
+    if (status < 0) {
+        throw IOException("setsockopt for enabling broadcast");
+    }
+}
+
+void UdpSocket::disable_broadcast() const
+{
+    int enabled = 0;
+    int status = setsockopt(
+        this->fd, SOL_SOCKET, SO_BROADCAST, &enabled, sizeof(enabled)
+    );
+    if (status < 0) {
+        throw IOException("setsockopt for disabling broadcast");
+    }
 }

@@ -6,6 +6,7 @@
 #include "../include/packet.h"
 
 #define DEFAULT_PORT 8010
+#define BROADCAST_PORT 9020
 
 using namespace std;
 
@@ -14,11 +15,14 @@ class UdpSocket {
         int fd;
 
     public:
-        UdpSocket(IpAddress bind_to_ip, uint16_t bind_to_port);
+        UdpSocket(IpAddress bind_to_ip);
         UdpSocket(UdpSocket const& obj) = delete;
         ~UdpSocket();
 
         UdpSocket &operator=(UdpSocket const& obj) = delete;
+
+        void enable_broadcast() const;
+        void disable_broadcast() const;
 
         void send(
             uint8_t const *buffer,
@@ -34,7 +38,7 @@ class UdpSocket {
         ) const;
 
         void send(
-            Packet packet,
+            Packet const& packet,
             IpAddress dest_ip_address,
             uint16_t dest_port = DEFAULT_PORT
         ) const;
@@ -46,7 +50,8 @@ class UdpSocket {
             uint16_t dest_port = DEFAULT_PORT
         ) const;
 
-        Packet receive(
+        void receive(
+            Packet& packet,
             IpAddress dest_ip_address,
             uint16_t dest_port = DEFAULT_PORT
         ) const;

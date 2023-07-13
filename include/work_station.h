@@ -8,7 +8,7 @@
 #include <memory>
 #include "../include/address.h"
 
-using WorkStation = NodeAddresses;
+class WorkStation;
 
 class WorkStationTable {
     private:
@@ -21,10 +21,41 @@ class WorkStationTable {
 
         bool insert(shared_ptr<WorkStation> node);
 
-        shared_ptr<WorkStation> get_by_mac_address(MacAddress const &address);
-        shared_ptr<WorkStation> get_by_ip_address(IpAddress const &address);
+        bool remove_by_mac_address(MacAddress const &address);
+        bool remove_by_ip_address(IpAddress const &address);
+
+        shared_ptr<WorkStation> get_by_mac_address(MacAddress const& address);
+        shared_ptr<WorkStation> get_by_ip_address(IpAddress const& address);
 
         vector<shared_ptr<WorkStation>> to_list();
 };
+
+class WorkStation {
+    friend bool WorkStationTable::remove_by_mac_address(
+        MacAddress const& address
+    );
+    friend bool WorkStationTable::remove_by_ip_address(
+        IpAddress const& address
+    );
+
+    public:
+        enum Status {
+            DISCONNECTED = -1,
+            ASLEEP = 0,
+            AWAKEN = 1
+        };
+
+    private:
+        NodeAddresses addresses_;
+        WorkStation::Status status_;
+        shared_mutex rw_mutex;
+
+    public:
+        WorkStation(NodeAddresses addresses, WorkStation::Status status);
+
+        NodeAddresses addresses();
+        WorkStation::Status status();
+};
+
 
 #endif

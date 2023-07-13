@@ -102,7 +102,7 @@ void NodeAddresses::load_mac()
     }
 }
 
-NodeAddresses NodeAddresses::localhost()
+NodeAddresses NodeAddresses::load_host()
 {
     NodeAddresses addresses;
     addresses.load_hostname();

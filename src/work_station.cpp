@@ -13,7 +13,6 @@
 #include <ifaddrs.h>
 #include <cstring>
 
-/*
 class WriteLockGuard {
     private:
         shared_mutex &rw_mutex;
@@ -41,6 +40,23 @@ class ReadLockGuard {
         }
 };
 
+WorkStation(NodeAddresses addresses, WorkStation::Status status):
+    addresses_(addresses),
+    status_(status)
+{
+}
+
+NodeAddresses WorkStation::addresses()
+{
+    return this->addresses_;
+}
+
+WorkStation::Status WorkStation::status()
+{
+    ReadLockGuard lock(this->rw_mutex);
+    return this->status_;
+}
+
 bool WorkStationTable::insert(shared_ptr<WorkStation> node)
 {
     WriteLockGuard lock(this->rw_mutex);
@@ -51,6 +67,31 @@ bool WorkStationTable::insert(shared_ptr<WorkStation> node)
         this->ip_address_index.insert(make_pair(node->ip_address, node));
     }
     return inserted;
+}
+
+bool WorkStationTable::remove_by_mac_address(MacAddress const &address);
+{
+    WriteLockGuard table_lock(this->rw_mutex);
+    auto handle = this->mac_address_index.extract(address);
+    if (handle.empty()) {
+        return false;
+    }
+    this->ip_address_index.extract(handle.value().addresses().ip);
+    handle.value().status = WorkStation::DISCONNECTED;
+    return true;
+}
+
+bool WorkStationTable::remove_by_ip_address(IpAddress const &address);
+{
+    WriteLockGuard table_lock(this->rw_mutex);
+    auto handle = this->ip_address_index.extract(address);
+    if (handle.empty()) {
+        return false;
+    }
+    this->mac_address_index.extract(handle.value().addresses().mac);
+    WriteLockGuard station_lock(handle.value.rw_mutex);
+    handle.value().status = WorkStation::DISCONNECTED;
+    return true;
 }
 
 shared_ptr<WorkStation> WorkStationTable::get_by_mac_address(
@@ -84,4 +125,3 @@ vector<shared_ptr<WorkStation>> WorkStationTable::to_list()
     }
     return vec;
 }
-*/

@@ -13,36 +13,39 @@ char const *InvalidPacketException::what() const noexcept
     return this->message.c_str();
 }
 
-string Packet::serialize() const
+Packet::Packet():
+    type(Packet::DISCOVERY_REQ),
+    seqn(0),
+    timestamp(0)
 {
-    PacketSerializer serializer;
+}
+
+void Packet::serialize(PacketSerializer& serializer) const
+{
+    serializer.write(this->type);
+    serializer.write(this->sender_addresses.mac);
+    serializer.write(this->sender_addresses.ip);
+    serializer.write(this->sender_addresses.hostname);
     serializer.write(this->seqn);
-    serializer.write(this->length);
     serializer.write(this->timestamp);
-    serializer.write(this->payload);
-    serializer.write(this->ip_address);
-    serializer.write(this->mac_address);
-    serializer.write(this->hostname);
-    serializer.write(this->is_manager);
-    return serializer.finish();
 }
 
-Packet Packet::deserialize(string message)
+void Packet::deserialize(PacketDeserializer& deserializer)
 {
-    PacketDeserializer deserializer(message);
-    Packet packet;
-    packet.seqn = deserializer.read_uint16();
-    packet.length = deserializer.read_uint16();
-    packet.timestamp = deserializer.read_uint16();
-    packet.payload = deserializer.read_string();
-    packet.ip_address = deserializer.read_ip_address();
-    packet.mac_address = deserializer.read_mac_address();
-    packet.hostname = deserializer.read_string();
-    packet.is_manager = deserializer.read_bool();
-    return packet;
+    this->type = deserializer.read_uint();
+    this->sender_addresses.mac = deserializer.read_mac_address();
+    this->sender_addresses.ip = deserializer.read_ip_address();
+    this->sender_addresses.hostname = deserializer.read_string();
+    this->seqn = deserializer.read_uint();
+    this->timestamp = (int64_t) deserializer.read_uint();
 }
 
-void PacketSerializer::write(uint16_t uint)
+size_t Packet::max_recv_heuristics() const
+{
+    return 4096;
+}
+
+void PacketSerializer::write(uint64_t uint)
 {
     this->serialized += to_string(uint);
     this->serialized += FIELD_END;
@@ -108,10 +111,10 @@ size_t PacketDeserializer::probe_field_end()
     return j;
 }
 
-uint16_t PacketDeserializer::read_uint16()
+uint64_t PacketDeserializer::read_uint()
 {
     size_t j = this->probe_field_end();
-    uint16_t uint = stoi(this->serialized.substr(this->i, j - this->i));
+    uint16_t uint = stoull(this->serialized.substr(this->i, j - this->i));
     this->i = j + 1;
     return uint;
 }
