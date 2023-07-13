@@ -100,20 +100,3 @@ size_t UdpSocket::receive(
     }
     return res;
 }
-
-string UdpSocket::receive(
-    IpAddress dest_ip_address,
-    uint16_t dest_port
-) const
-{
-    string message;
-    uint8_t chunk[CHUNK_SIZE + 1];
-    size_t received;
-    while ((
-        received = this->receive(chunk, CHUNK_SIZE, dest_ip_address, dest_port)
-    ) > 0) {
-        chunk[received] = 0;
-        message += (char *) chunk;
-    }
-    return message;
-}

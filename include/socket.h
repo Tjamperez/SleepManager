@@ -38,11 +38,6 @@ class UdpSocket {
             IpAddress dest_ip_address,
             uint16_t dest_port = DEFAULT_PORT
         ) const;
-
-        string receive(
-            IpAddress dest_ip_address,
-            uint16_t dest_port = DEFAULT_PORT
-        ) const;
 };
 
 #endif
