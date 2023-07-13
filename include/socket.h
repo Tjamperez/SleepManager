@@ -3,6 +3,7 @@
 
 #include <optional>
 #include "../include/address.h"
+#include "../include/packet.h"
 
 #define DEFAULT_PORT 8010
 
@@ -32,9 +33,20 @@ class UdpSocket {
             uint16_t dest_port = DEFAULT_PORT
         ) const;
 
+        void send(
+            Packet packet,
+            IpAddress dest_ip_address,
+            uint16_t dest_port = DEFAULT_PORT
+        ) const;
+
         size_t receive(
             uint8_t *buffer,
             size_t capacity,
+            IpAddress dest_ip_address,
+            uint16_t dest_port = DEFAULT_PORT
+        ) const;
+
+        Packet receive(
             IpAddress dest_ip_address,
             uint16_t dest_port = DEFAULT_PORT
         ) const;

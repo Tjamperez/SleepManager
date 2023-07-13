@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <ifaddrs.h>
 
-#define CHUNK_SIZE 4096
+#define PACKET_BUF_SIZE 4096
 
 UdpSocket::UdpSocket(IpAddress bind_to_ip, uint16_t bind_to_port):
     fd(-1)
@@ -77,6 +77,16 @@ void UdpSocket::send(
     );
 }
 
+void UdpSocket::send(
+    Packet packet,
+    IpAddress dest_ip_address,
+    uint16_t dest_port
+) const
+{
+    string message = packet.serialize();
+    this->send(message, dest_ip_address, dest_port);
+}
+
 size_t UdpSocket::receive(
     uint8_t *buffer,
     size_t capacity,
@@ -99,4 +109,14 @@ size_t UdpSocket::receive(
         throw IOException("recvfrom");
     }
     return res;
+}
+
+Packet UdpSocket::receive(IpAddress dest_ip_address, uint16_t dest_port) const
+{
+    uint8_t buffer[PACKET_BUF_SIZE + 1];
+    size_t read =
+        this->receive(buffer, PACKET_BUF_SIZE, dest_ip_address, dest_port);
+    buffer[read] = 0;
+    string message = (char *) buffer;
+    return Packet::deserialize(message);
 }
