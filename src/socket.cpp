@@ -102,7 +102,7 @@ size_t UdpSocket::receive(
     return res;
 }
 
-void UdpSocket::receive(
+bool UdpSocket::receive(
     Packet &packet,
     IpAddress dest_ip_address,
     uint16_t dest_port
@@ -117,7 +117,7 @@ void UdpSocket::receive(
     );
     message.resize(read);
     PacketDeserializer deserializer(message);
-    packet.deserialize(deserializer);
+    return packet.deserialize(deserializer);
 }
 
 void UdpSocket::enable_broadcast() const

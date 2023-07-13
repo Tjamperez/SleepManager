@@ -50,7 +50,7 @@ class UdpSocket {
             uint16_t dest_port = DEFAULT_PORT
         ) const;
 
-        void receive(
+        bool receive(
             Packet& packet,
             IpAddress dest_ip_address,
             uint16_t dest_port = DEFAULT_PORT
