@@ -1,10 +1,10 @@
 #include "../include/work_station.h"
 #include "../include/participant.h"
 #include "../include/interface.h"
-#include "../include/server.h"
 
 void participant_main(void)
 {
+    /*
     Server_Connection server;
     server.start_client();
     
@@ -14,4 +14,5 @@ void participant_main(void)
     Interface interface(is_participant,participants);
   
     interface.terminal();
+    */
 }

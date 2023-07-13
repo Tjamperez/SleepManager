@@ -36,7 +36,7 @@ public:
     Packet();
 
     virtual void serialize(PacketSerializer& serializer) const;
-    virtual void deserialize(PacketDeserializer& deserializer);
+    virtual bool deserialize(PacketDeserializer& deserializer);
     virtual size_t max_recv_heuristics() const;
 };
 

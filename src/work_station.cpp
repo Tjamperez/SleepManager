@@ -40,7 +40,7 @@ class ReadLockGuard {
         }
 };
 
-WorkStation(NodeAddresses addresses, WorkStation::Status status):
+WorkStation::WorkStation(NodeAddresses addresses, WorkStation::Status status):
     addresses_(addresses),
     status_(status)
 {
@@ -61,36 +61,36 @@ bool WorkStationTable::insert(shared_ptr<WorkStation> node)
 {
     WriteLockGuard lock(this->rw_mutex);
     bool inserted = get<1>(
-        this->mac_address_index.insert(make_pair(node->mac_address, node))
+        this->mac_address_index.insert(make_pair(node->addresses().mac, node))
     );
     if (inserted) {
-        this->ip_address_index.insert(make_pair(node->ip_address, node));
+        this->ip_address_index.insert(make_pair(node->addresses().ip, node));
     }
     return inserted;
 }
 
-bool WorkStationTable::remove_by_mac_address(MacAddress const &address);
+bool WorkStationTable::remove_by_mac_address(MacAddress const &address)
 {
     WriteLockGuard table_lock(this->rw_mutex);
     auto handle = this->mac_address_index.extract(address);
     if (handle.empty()) {
         return false;
     }
-    this->ip_address_index.extract(handle.value().addresses().ip);
-    handle.value().status = WorkStation::DISCONNECTED;
+    this->ip_address_index.extract(handle.mapped()->addresses().ip);
+    handle.mapped()->status_ = WorkStation::DISCONNECTED;
     return true;
 }
 
-bool WorkStationTable::remove_by_ip_address(IpAddress const &address);
+bool WorkStationTable::remove_by_ip_address(IpAddress const &address)
 {
     WriteLockGuard table_lock(this->rw_mutex);
     auto handle = this->ip_address_index.extract(address);
     if (handle.empty()) {
         return false;
     }
-    this->mac_address_index.extract(handle.value().addresses().mac);
-    WriteLockGuard station_lock(handle.value.rw_mutex);
-    handle.value().status = WorkStation::DISCONNECTED;
+    this->mac_address_index.extract(handle.mapped()->addresses().mac);
+    WriteLockGuard station_lock(handle.mapped()->rw_mutex);
+    handle.mapped()->status_ = WorkStation::DISCONNECTED;
     return true;
 }
 

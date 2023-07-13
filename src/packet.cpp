@@ -22,22 +22,34 @@ Packet::Packet():
 
 void Packet::serialize(PacketSerializer& serializer) const
 {
-    serializer.write(this->type);
+    serializer.write((uint64_t) this->type);
     serializer.write(this->sender_addresses.mac);
     serializer.write(this->sender_addresses.ip);
     serializer.write(this->sender_addresses.hostname);
-    serializer.write(this->seqn);
-    serializer.write(this->timestamp);
+    serializer.write((uint64_t) this->seqn);
+    serializer.write((uint64_t) (int64_t) this->timestamp);
 }
 
-void Packet::deserialize(PacketDeserializer& deserializer)
+bool Packet::deserialize(PacketDeserializer& deserializer)
 {
-    this->type = deserializer.read_uint();
+    uint8_t type = deserializer.read_uint();
+    switch (type) {
+        case Type::DISCOVERY_REQ:
+            this->type = Type::DISCOVERY_REQ;
+            break;
+        case Type::DISCOVERY_RESP:
+            this->type = Type::DISCOVERY_RESP;
+            break;
+        default:
+            return false;
+    }
     this->sender_addresses.mac = deserializer.read_mac_address();
     this->sender_addresses.ip = deserializer.read_ip_address();
     this->sender_addresses.hostname = deserializer.read_string();
     this->seqn = deserializer.read_uint();
     this->timestamp = (int64_t) deserializer.read_uint();
+
+    return true;
 }
 
 size_t Packet::max_recv_heuristics() const

@@ -46,12 +46,13 @@ void NodeAddresses::load_ip()
     while (addr_curr != nullptr && !found_ipv4) {
         if (addr_curr->ai_family == AF_INET) {
             copy_n(
-                addr_curr->ai_addr->sa_data,
+                &addr_curr->ai_addr->sa_data[2],
                 4,
                 this->ip.begin()
             );
             found_ipv4 = true;
         }
+        addr_curr = addr_curr->ai_next;
     }
     freeaddrinfo(addr_list);
 
@@ -94,6 +95,7 @@ void NodeAddresses::load_mac()
                 found_mac = true;
             }
         }
+        ifaddr_curr = ifaddr_curr->ifa_next;
     }
     freeifaddrs(ifaddr_list);
 

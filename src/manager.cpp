@@ -4,6 +4,7 @@
 
 void manager_main(void)
 {
+    /*
     Server_Connection server;
     server.start_server();
 
@@ -13,4 +14,5 @@ void manager_main(void)
     Interface interface(is_participant,participants);
     
     interface.terminal();
+    */
 }

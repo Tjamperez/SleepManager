@@ -5,10 +5,9 @@
 void discovery_main(shared_ptr<WorkStationTable> work_station_table)
 {
     NodeAddresses host = NodeAddresses::load_host();
-    UdpSocket socket(localhost.ip);
+    UdpSocket socket(host.ip);
     socket.enable_broadcast();
     while (1) {
         Packet packet;
-        socket.receive();
     }
 }
