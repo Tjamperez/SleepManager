@@ -7,7 +7,12 @@ void discovery_main(shared_ptr<WorkStationTable> work_station_table)
     NodeAddresses host = NodeAddresses::load_host();
     UdpSocket socket(host.ip);
     socket.enable_broadcast();
-    while (1) {
+    while (true) {
         Packet packet;
+        if (
+            socket.receive(packet, BROADCAST_PORT)
+            && packet.type == Packet::DISCOVERY_REQ
+        ) {
+        }
     }
 }

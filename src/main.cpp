@@ -22,8 +22,6 @@ int main(int argc, char const *argv[])
 
     NodeAddresses addrs = NodeAddresses::load_host();
     cout << addrs.mac << endl;
-    
-    return 0;
 
     if (argc <= 1) {
         cout << "participant" << endl;
