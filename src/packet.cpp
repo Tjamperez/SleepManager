@@ -26,7 +26,7 @@ void Packet::serialize(PacketSerializer& serializer) const
     serializer.write(this->sender_addresses.mac);
     serializer.write(this->sender_addresses.ip);
     serializer.write(this->sender_addresses.hostname);
-    serializer.write((uint64_t) this->seqn);
+    serializer.write(this->seqn);
     serializer.write((uint64_t) (int64_t) this->timestamp);
 }
 

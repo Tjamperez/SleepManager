@@ -8,7 +8,7 @@ OBJ_FILES = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*
 
 LINK_FLAGS =
 CPP = g++
-C_FLAGS = -g -pthread
+C_FLAGS = -g -pthread -std=c++17
 
 $(PROG_PATH): $(OBJ_FILES)
 	$(CPP) -o $@ $^ $(C_FLAGS) $(LINK_FLAGS)
