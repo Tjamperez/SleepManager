@@ -8,22 +8,7 @@
 #include <memory>
 #include "../include/address.h"
 
-class WorkStation {
-    public:
-        enum Status {
-            ASLEEP = 0,
-            AWAKEN = 1
-        };
-
-        MacAddress mac_address;
-        IpAddress ip_address;
-        string hostname;
-        Status status;
-
-        WorkStation();
-
-        static WorkStation localhost();
-};
+using WorkStation = NodeAddresses;
 
 class WorkStationTable {
     private:

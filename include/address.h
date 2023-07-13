@@ -12,11 +12,45 @@ using MacAddress = array<uint8_t, 6>;
 
 using IpAddress = array<uint8_t, 4>;
 
+class NodeAddresses { 
+    public:
+        MacAddress mac;
+        IpAddress ip;
+        string hostname;
+    private:
+        void load_hostname();
+        void load_ip();
+        void load_mac();
+    public:
+        NodeAddresses();
+        static NodeAddresses localhost();
+};
+
 class InvalidAddressException: public exception {
     private:
         string message;
     public:
         InvalidAddressException(string message_);
+        virtual char const *what() const noexcept;
+};
+
+class NoIpAddressFoundException: public exception {
+    private:
+        string hostname_;
+        string message;
+    public:
+        NoIpAddressFoundException(string hostname__);
+        string const& hostname() const;
+        virtual char const *what() const noexcept;
+};
+
+class NoMacAddressFoundException: public exception {
+    private:
+        IpAddress ip_address_;
+        string message;
+    public:
+        NoMacAddressFoundException(IpAddress ip_address__);
+        IpAddress ip_address() const;
         virtual char const *what() const noexcept;
 };
 

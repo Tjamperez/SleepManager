@@ -14,11 +14,9 @@ Server_Connection::Server_Connection()
     this->serv_addr.sin_addr.s_addr = INADDR_ANY;
     this->seqn = 0;
 
-    for (size_t i = 0; i < this->work_station.ip_address.size(); i++) {
-        this->work_station.ip_address[i] = server->h_addr[i];
+    for (size_t i = 0; i < this->work_station.ip.size(); i++) {
+        this->work_station.ip[i] = server->h_addr[i];
     }
-
-    this->work_station.status = WorkStation::AWAKEN;
 };
 
 void Server_Connection::start_client()
@@ -129,11 +127,11 @@ char *Server_Connection::get_mac()
     ioctl(fd, SIOCGIFHWADDR, &ifr);
     close(fd);
     mac_address_hex = (char *)ifr.ifr_hwaddr.sa_data;
-    for (size_t i = 0; i < this->work_station.mac_address.size(); i++) {
-        this->work_station.mac_address[i] = mac_address_hex[i];
+    for (size_t i = 0; i < this->work_station.mac.size(); i++) {
+        this->work_station.mac[i] = mac_address_hex[i];
     }
 
-    cout << "MAC address: " << this->work_station.mac_address << endl;
+    cout << "MAC address: " << this->work_station.mac << endl;
 
     return (mac_address_hex);
 }
@@ -149,7 +147,7 @@ char *Server_Connection::get_ip()
     ioctl(fd, SIOCGIFADDR, &ifr);
     close(fd);
     ip_address = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-    cout << "IP address: " << render_ip_address(this->work_station.ip_address) << endl;
+    cout << "IP address: " << render_ip_address(this->work_station.ip) << endl;
 
     return (ip_address);
 }
