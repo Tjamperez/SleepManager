@@ -22,17 +22,17 @@ Packet::Packet():
 
 void Packet::serialize(PacketSerializer& serializer) const
 {
-    serializer.write(this->type);
+    serializer.write((uint64_t)this->type);//type cast foi necessario
     serializer.write(this->sender_addresses.mac);
     serializer.write(this->sender_addresses.ip);
     serializer.write(this->sender_addresses.hostname);
     serializer.write(this->seqn);
-    serializer.write(this->timestamp);
+    serializer.write((uint64_t)this->timestamp); // type cast foi necessario
 }
 
 void Packet::deserialize(PacketDeserializer& deserializer)
 {
-    this->type = deserializer.read_uint();
+    this->type = (Type)deserializer.read_uint();//como eu vou arrumar esse type
     this->sender_addresses.mac = deserializer.read_mac_address();
     this->sender_addresses.ip = deserializer.read_ip_address();
     this->sender_addresses.hostname = deserializer.read_string();
