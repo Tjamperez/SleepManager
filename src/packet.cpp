@@ -13,48 +13,87 @@ char const *InvalidPacketException::what() const noexcept
     return this->message.c_str();
 }
 
-Packet::Packet():
-    type(Packet::DISCOVERY_REQ),
+PacketHeader::PacketHeader():
     seqn(0),
-    timestamp(0)
+    timestamp(0),
+    direction(PacketHeader::REQUEST)
 {
+}
+
+bool PacketHeader::parse_direction(uint64_t uint)
+{
+    switch (uint) {
+        case PacketHeader::REQUEST:
+        case PacketHeader::RESPONSE:
+            this->direction = (PacketHeader::Direction) uint;
+            return true;
+        default:
+            return false;
+    }
+}
+
+void PacketHeader::serialize(PacketSerializer& serializer) const
+{
+    serializer.write(this->seqn);
+    serializer.write((uint64_t) (int64_t) this->timestamp);
+    serializer.write(this->sender_addresses.mac);
+    serializer.write(this->sender_addresses.ip);
+    serializer.write(this->sender_addresses.hostname);
+    serializer.write((uint64_t) this->direction);
+}
+
+bool PacketHeader::deserialize(PacketDeserializer& deserializer)
+{
+    this->seqn = deserializer.read_uint();
+    this->timestamp = (int64_t) deserializer.read_uint();
+    this->sender_addresses.mac = deserializer.read_mac_address();
+    this->sender_addresses.ip = deserializer.read_ip_address();
+    this->sender_addresses.hostname = deserializer.read_string();
+    if (!this->parse_direction(deserializer.read_uint())) {
+        return false;
+    }
+    return true;
+}
+
+PacketBody::PacketBody():
+    type(PacketBody::DISCOVERY)
+{
+}
+
+bool PacketBody::parse_type(uint64_t uint)
+{
+    switch (uint) {
+        case PacketBody::DISCOVERY:
+            this->type = (PacketBody::Type) uint;
+            return true;
+        default:
+            return false;
+    }
+}
+
+void PacketBody::serialize(PacketSerializer& serializer) const
+{
+    serializer.write((uint64_t) this->type);
+}
+
+bool PacketBody::deserialize(PacketDeserializer& deserializer)
+{
+    if (!this->parse_type(deserializer.read_uint())) {
+        return false;
+    }
+    return true;
 }
 
 void Packet::serialize(PacketSerializer& serializer) const
 {
-    serializer.write((uint64_t) this->type);
-    serializer.write(this->sender_addresses.mac);
-    serializer.write(this->sender_addresses.ip);
-    serializer.write(this->sender_addresses.hostname);
-    serializer.write(this->seqn);
-    serializer.write((uint64_t) (int64_t) this->timestamp);
+    this->header.serialize(serializer);
+    this->body.serialize(serializer);
 }
 
 bool Packet::deserialize(PacketDeserializer& deserializer)
 {
-    uint8_t type = deserializer.read_uint();
-    switch (type) {
-        case Type::DISCOVERY_REQ:
-            this->type = Type::DISCOVERY_REQ;
-            break;
-        case Type::DISCOVERY_RESP:
-            this->type = Type::DISCOVERY_RESP;
-            break;
-        default:
-            return false;
-    }
-    this->sender_addresses.mac = deserializer.read_mac_address();
-    this->sender_addresses.ip = deserializer.read_ip_address();
-    this->sender_addresses.hostname = deserializer.read_string();
-    this->seqn = deserializer.read_uint();
-    this->timestamp = (int64_t) deserializer.read_uint();
-
-    return true;
-}
-
-size_t Packet::max_recv_heuristics() const
-{
-    return 4096;
+    return this->header.deserialize(deserializer)
+        && this->body.deserialize(deserializer);
 }
 
 void PacketSerializer::write(uint64_t uint)

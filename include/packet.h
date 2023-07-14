@@ -18,26 +18,46 @@ class InvalidPacketException: public exception {
         virtual char const *what() const noexcept;
 };
 
-// Base type for messages exhanged between processes.
-//
-// Inherit this class to extend package size and behaviour.
-class Packet {
-public:
-    enum Type {
-        DISCOVERY_REQ = 0,
-        DISCOVERY_RESP = 1
+struct PacketHeader {
+    enum Direction { 
+        REQUEST = 0,
+        RESPONSE = 1
+    };
+
+    uint64_t seqn;
+    time_t timestamp;
+    NodeAddresses sender_addresses;
+    Direction direction;
+
+    PacketHeader();
+
+    bool parse_direction(uint64_t uint);
+
+    void serialize(PacketSerializer& serializer) const;
+    bool deserialize(PacketDeserializer& deserializer);
+};
+
+struct PacketBody {
+    enum Type { 
+        DISCOVERY = 0
     };
 
     Type type;
-    NodeAddresses sender_addresses;
-    uint64_t seqn;
-    time_t timestamp;
 
-    Packet();
+    PacketBody();
 
-    virtual void serialize(PacketSerializer& serializer) const;
-    virtual bool deserialize(PacketDeserializer& deserializer);
-    virtual size_t max_recv_heuristics() const;
+    bool parse_type(uint64_t uint);
+
+    void serialize(PacketSerializer& serializer) const;
+    bool deserialize(PacketDeserializer& deserializer);
+};
+
+struct Packet {
+    PacketHeader header;
+    PacketBody body;
+
+    void serialize(PacketSerializer& serializer) const;
+    bool deserialize(PacketDeserializer& deserializer);
 };
 
 class PacketSerializer {

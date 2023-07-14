@@ -1,18 +1,29 @@
 #include "../include/discovery.h"
 #include "../include/socket.h"
 #include "../include/address.h"
+#include <thread>
+
+static void discovery_response(
+    ServerSocket::Request request,
+    shared_ptr<WorkStationTable> work_station_table)
+{
+    NodeAddresses sender_addresses =
+        request.received_packet().header.sender_addresses;
+    shared_ptr<WorkStation> work_station(new WorkStation(
+        sender_addresses,
+        WorkStation::AWAKE
+    ));
+    work_station_table->insert(work_station);
+    request.respond(DEFAULT_PORT);
+}
 
 void discovery_main(shared_ptr<WorkStationTable> work_station_table)
 {
-    NodeAddresses host = NodeAddresses::load_host();
-    UdpSocket socket(host.ip);
-    socket.enable_broadcast();
+    ServerSocket socket(BROADCAST_PORT);
+
     while (true) {
-        Packet packet;
-        if (
-            socket.receive(packet, BROADCAST_PORT)
-            && packet.type == Packet::DISCOVERY_REQ
-        ) {
-        }
+        ServerSocket::Request request = socket.receive();
+        thread response_thread(discovery_response, request, work_station_table);
+        response_thread.detach();
     }
 }
