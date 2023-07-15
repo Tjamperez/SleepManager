@@ -1,12 +1,15 @@
 #ifndef SOCKET_H_
 #define SOCKET_H_
 
+#include <atomic>
 #include <optional>
 #include "../include/address.h"
 #include "../include/packet.h"
 
 #define DEFAULT_PORT 8010
 #define BROADCAST_PORT 9020
+
+#define DEFAULT_TRY_MS 100
 
 using namespace std;
 
@@ -54,7 +57,19 @@ class SenderSocket {
 /** A raw socket used only for receiving packets. Do not use directly. */
 class ReceiverSocket {
     private:
+        enum BlockType {
+            BLOCKING,
+            NON_BLOCKING
+        };
+
         int fd;
+
+        optional<size_t> receive_with_block_type(
+            uint8_t *buffer,
+            size_t capacity,
+            BlockType block_type
+        );
+
     public:
         /** Creates a receiver socket that will listen to the given port in
          * the host's IP address.
@@ -71,13 +86,28 @@ class ReceiverSocket {
          */
         size_t receive(uint8_t *buffer, size_t capacity);
 
+        /** Like .receive() but does not block. Returns an empty value if a
+         * packet could not be received.
+         */
+        optional<size_t> try_receive(uint8_t *buffer, size_t capacity);
+
         /** Receives a serialized packet string. */
         string receive();
+
+        /** Like .receive() but does not block. Returns an empty value if a
+         * packet could not be received.
+         */
+        optional<string> try_receive();
 
         /** Receives a packet that is automatically deserialized. If the packet
          * is not recognized in the deserialization, this method returns false.
          */
         bool receive(Packet& packet);
+
+        /** Like .receive() but does not block. Returns an empty value if a
+         * packet could not be received.
+         */
+        optional<bool> try_receive(Packet& packet);
 
         /** Enables or disables broadcast given the boolean argument. 
          * If no argument is given, then broadcast is enabled.
@@ -127,6 +157,62 @@ class ServerSocket {
 
         /** Receives the next request. */
         Request receive();
+
+        /** Enables or disables broadcast given the boolean argument. 
+         * If no argument is given, then broadcast is enabled.
+         */
+        void enable_broadcast(bool enable = true);
+};
+
+/** A socket used as a client. Use this to actively send requests and then
+ * listen to the response.
+ */
+class ClientSocket {
+    public:
+        /** An active sent request handle created from request method. */
+        class Request {
+            friend ClientSocket;
+
+            private:
+                IpAddress dest_ip_address_;
+                uint16_t dest_port_;
+                Packet sent_packet_;
+                Request(
+                    IpAddress dest_ip_address__,
+                    uint16_t dest_port__,
+                    Packet sent_packet__
+                );
+                void send();
+
+            public:
+                /** Returns the packet sent in the request. */
+                Packet sent_packet() const;
+
+                /** Port to where the packet is sent. */
+                IpAddress dest_ip_address() const;
+
+                /** Port to where the packet is sent. */
+                uint16_t dest_port() const;
+
+                /** Receives the response possibly repeating the request */
+                Packet receive_response(
+                    uint16_t port = DEFAULT_PORT,
+                    uint64_t try_wait_ms = DEFAULT_TRY_MS
+                );
+        };
+
+    private:
+        SenderSocket udp;
+
+        static atomic<uint64_t> seqn;
+
+    public:
+        /** Performs a request to the given IP and port. */
+        Request request(
+            PacketBody packet_body,
+            IpAddress dest_ip_address,
+            uint16_t dest_port = DEFAULT_PORT
+        );
 
         /** Enables or disables broadcast given the boolean argument. 
          * If no argument is given, then broadcast is enabled.

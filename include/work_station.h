@@ -83,5 +83,4 @@ class WorkStation {
         WorkStation::Status status();
 };
 
-
 #endif
