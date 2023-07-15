@@ -13,7 +13,9 @@
 #define WAKEUP "WAKEUP"
 using namespace std;
 
-class Interface{
+void interface_main(shared_ptr<WorkStationTable> participants);
+
+class Interface {
     protected:
         bool is_participant;
         shared_ptr<WorkStationTable> participants;

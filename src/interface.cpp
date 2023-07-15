@@ -1,5 +1,23 @@
 #include "../include/interface.h"
 
+void interface_main(shared_ptr<WorkStationTable> participants)
+{
+    bool exit = false;
+
+    while (!exit) {
+        string input;
+        getline(cin, input);
+
+        transform(input.begin(), input.end(), input.begin(), ::toupper);
+
+        if (input == "EXIT") {
+            exit = true;
+        } else {
+            cout << "\033[2J\033[1;1H";
+        }
+    }
+}
+
 Interface::Interface(
     bool is_participant,
     shared_ptr<WorkStationTable> participants)
