@@ -147,7 +147,7 @@ bool WorkStationTable::wakeup(string const& hostname)
     shared_ptr<WorkStation> station = this->get_by_hostname(hostname);
     lock_guard<shared_mutex> lock_guard(station->rw_status_lock);
     if (station->status_ == WorkStation::ASLEEP) {
-        station->status_ = WorkStation::AWAKE;
+        station->status_ = WorkStation::AWAKEN;
         return true;
     }
     return false;

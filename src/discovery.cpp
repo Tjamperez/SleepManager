@@ -11,7 +11,7 @@ static void discovery_response(
         request.received_packet().header.sender_addresses;
     shared_ptr<WorkStation> work_station(new WorkStation(
         sender_addresses,
-        WorkStation::AWAKE
+        WorkStation::AWAKEN
     ));
     work_station_table->insert(work_station);
     request.respond(DEFAULT_PORT);

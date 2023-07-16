@@ -12,7 +12,14 @@
 
 using namespace std;
 
-void interface_main(shared_ptr<WorkStationTable> participants);
+enum InterfaceType {
+    INTERFACE_PARTICIPANT,
+    INTERFACE_MANAGER
+};
+
+void interface_main(
+    InterfaceType type,
+    shared_ptr<WorkStationTable> participants);
 
 /*
 void interface_main(

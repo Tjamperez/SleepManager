@@ -95,7 +95,7 @@ class WorkStation {
         enum Status {
             DISCONNECTED = -1,
             ASLEEP = 0,
-            AWAKE = 1
+            AWAKEN = 1
         };
 
     private:

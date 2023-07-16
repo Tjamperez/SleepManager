@@ -11,7 +11,9 @@ static void trim_whitespace(string &input);
 
 static void render(vector<shared_ptr<WorkStation>> participants);
 
-void interface_main(shared_ptr<WorkStationTable> participants)
+void interface_main(
+    InterfaceType type,
+    shared_ptr<WorkStationTable> participants)
 {
     auto channel = Mpsc<InterfaceMsg>::open();
     Mpsc<InterfaceMsg>::Sender sender = get<0>(channel);
@@ -21,17 +23,21 @@ void interface_main(shared_ptr<WorkStationTable> participants)
         sender.send(INTERFACE_REFRESH);
     });
 
-    thread input_thread([sender = move(sender), participants] () {
+    thread input_thread([sender = move(sender), participants, type] () {
         bool exit = false;
         while (!exit) {
             string input;
             getline(cin, input);
 
-            transform(input.begin(), input.end(), input.begin(), ::toupper);
             trim_whitespace(input);
 
             size_t whitespace_pos = input.find(' ');
             string command = input.substr(0, whitespace_pos);
+            transform(
+                command.begin(),
+                command.end(),
+                command.begin(),
+                ::toupper);
             string argument = input.substr(whitespace_pos);
             trim_whitespace(argument);
 
@@ -42,7 +48,9 @@ void interface_main(shared_ptr<WorkStationTable> participants)
                 sender.send(INTERFACE_EXIT);
                 exit = true;
             } else if (input == "WAKEUP") {
-                if (argument.size() == 0) {
+                if (type == INTERFACE_MANAGER) {
+                    cerr << "WAKEUP cannot be used by managers." << endl;
+                } else if (argument.size() == 0) {
                     cerr << "WAKEUP expects a hostname." << endl;
                 } else {
                     bool woke_up = participants->wakeup(argument);
@@ -141,8 +149,8 @@ static void render(vector<shared_ptr<WorkStation>> participants)
             case WorkStation::ASLEEP:
                 column = "ASLEEP";
                 break;
-            case WorkStation::AWAKE:
-                column = "AWAKE";
+            case WorkStation::AWAKEN:
+                column = "AWAKEN";
                 break;
         }
         cout << column;
