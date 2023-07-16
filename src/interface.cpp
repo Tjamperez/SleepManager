@@ -2,7 +2,14 @@
 #include <thread>
 #include <algorithm>
 
+enum ManagerIfaceMsg {
+    MANAGER_IFACE_EXIT,
+    MANAGER_IFACE_REFRESH
+};
+
 static void trim_whitespace(string &input);
+
+static void render(vector<shared_ptr<WorkStation>> participants);
 
 void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
 {
@@ -23,40 +30,17 @@ void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
     }
 }
 
-static void trim_whitespace(string &input)
+void manager_interface_main(shared_ptr<WorkStationTable> participants)
 {
-    input.erase(input.begin(), find_if(input.begin(), input.end(), [](char ch) {
-        return !iswspace(ch);
-    }));
-    input.erase(
-        find_if(input.rbegin(), input.rend(), [](char ch) {
-            return !iswspace(ch);
-        }).base(),
-        input.end()
-    );
-}
-
-/*
-enum InterfaceMsg {
-    INTERFACE_EXIT,
-    INTERFACE_REFRESH
-};
-
-static void render(vector<shared_ptr<WorkStation>> participants);
-
-void interface_main(
-    InterfaceType type,
-    shared_ptr<WorkStationTable> participants)
-{
-    auto channel = Mpsc<InterfaceMsg>::open();
-    Mpsc<InterfaceMsg>::Sender sender = get<0>(channel);
-    Mpsc<InterfaceMsg>::Receiver receiver = move(get<1>(channel));
+    auto channel = Mpsc<ManagerIfaceMsg>::open();
+    Mpsc<ManagerIfaceMsg>::Sender sender = get<0>(channel);
+    Mpsc<ManagerIfaceMsg>::Receiver receiver = move(get<1>(channel));
 
     participants->register_event_handler([& sender] (WorkStationEvent event) {
-        sender.send(INTERFACE_REFRESH);
+        sender.send(MANAGER_IFACE_REFRESH);
     });
 
-    thread input_thread([sender = move(sender), participants, type] () {
+    thread input_thread([sender = move(sender), participants] () {
         bool exit = false;
         while (!exit) {
             string input;
@@ -74,16 +58,8 @@ void interface_main(
             string argument = input.substr(whitespace_pos);
             trim_whitespace(argument);
 
-            if (input == "EXIT") {
-                if (argument.size() > 0) {
-                    cerr << "EXIT does not expect an argument." << endl;
-                }
-                sender.send(INTERFACE_EXIT);
-                exit = true;
-            } else if (input == "WAKEUP") {
-                if (type == INTERFACE_MANAGER) {
-                    cerr << "WAKEUP cannot be used by managers." << endl;
-                } else if (argument.size() == 0) {
+            if (input == "WAKEUP") {
+                if (argument.size() == 0) {
                     cerr << "WAKEUP expects a hostname." << endl;
                 } else {
                     bool woke_up = participants->wakeup(argument);
@@ -103,10 +79,10 @@ void interface_main(
         auto maybe_message = receiver.receive();
         if (bool(maybe_message)) {
             switch (maybe_message.value()) {
-                case INTERFACE_EXIT:
+                case MANAGER_IFACE_EXIT:
                     exit = true;
                     break;
-                case INTERFACE_REFRESH:
+                case MANAGER_IFACE_REFRESH:
                     render(participants->to_list());
                     break;
             }
@@ -201,102 +177,15 @@ static void render(vector<shared_ptr<WorkStation>> participants)
     }
 }
 
-*/
-
-/*
-void interface_main(
-    shared_ptr<WorkStationTable> participants,
-    Broadcast<InterfaceMessage> channel)
+static void trim_whitespace(string &input)
 {
-    bool exit = false;
-    Broadcast<InterfaceMessage>::Subscriber subscriber
-        = channel.make_subscriber();
-
-    thread input_thread([& channel] () {
-        Broadcast<InterfaceMessage>::Publisher publisher
-            = channel.make_publisher();
-        bool exit = false;
-        while (!exit) {
-            string input;
-            getline(cin, input);
-
-            transform(input.begin(), input.end(), input.begin(), ::toupper);
-
-            if (input == "EXIT") {
-                publisher.publish(INTERFACE_EXIT);
-                exit = true;
-            }
-        }
-    });
-    input_thread.detach();
-
-    while (!exit) {
-        switch (subscriber.subscribe()) {
-            case INTERFACE_EXIT:
-                exit = true;
-                break;
-            case INTERFACE_REFRESH:
-                cout << "\033[2J\033[1;1H";
-                break;
-        }
-    }
+    input.erase(input.begin(), find_if(input.begin(), input.end(), [](char ch) {
+        return !iswspace(ch);
+    }));
+    input.erase(
+        find_if(input.rbegin(), input.rend(), [](char ch) {
+            return !iswspace(ch);
+        }).base(),
+        input.end()
+    );
 }
-
-Interface::Interface(
-    bool is_participant,
-    shared_ptr<WorkStationTable> participants)
-{
-    this->is_participant = is_participant;
-    this->participants = participants;
-};
-
-//Get terminal input and validate it according to station (participant or manager)
-void Interface::terminal()
-{
-    bool valid_input = false;
-    
-    while (valid_input == false)
-    {
-        vector<string> input_vec;
-        string terminal_input;
-
-        getline(cin,terminal_input);
-        transform(terminal_input.begin(), terminal_input.end(), terminal_input.begin(), ::toupper);
-
-        int space_position = terminal_input.find(" ");
-        string cmd = terminal_input.substr(0, space_position);
-        string cmd_argument = terminal_input.substr(space_position+1);
-
-        if (this->is_participant)
-        {
-            if (cmd == EXIT)
-                valid_input = true;
-            else
-                cout << "The only valid command for participant station is 'EXIT'" << endl;
-        }
-        else
-        {
-            if (cmd == WAKEUP && cmd_argument != cmd) //if no hostname is informed, no argument will have been found in the terminal command and substrings will be equal
-            {
-                string hostname = cmd_argument;
-
-                //wakeup(hostname,&this->participants); //Not a real method, just writing out program flow
-                show_participants(); //Show updated participants list
-
-                valid_input = true;
-            }
-            else
-                cout << "The only valid command for manager station is 'WAKEUP <hostname>'" << endl;
-        };
-    };
-
-};
-
-void Interface::show_participants()
-{
-};
-
-void Interface::show_manager()
-{
-};
-*/

@@ -15,32 +15,6 @@ using namespace std;
 
 void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel);
 
-/*
-void interface_main(
-    InterfaceType type,
-    shared_ptr<WorkStationTable> participants);
-    */
-
-/*
-void interface_main(
-    shared_ptr<WorkStationTable> participants,
-    Broadcast<InterfaceMessage> channel);
-
-class Interface {
-    protected:
-        bool is_participant;
-        shared_ptr<WorkStationTable> participants;
-
-        void show_participants();
-        void show_manager();
-  
-    public:
-        Interface(
-            bool is_participant,
-            shared_ptr<WorkStationTable> participants
-        );
-        void terminal();
-};
-    */
+void manager_interface_main(shared_ptr<WorkStationTable> participants);
 
 #endif
