@@ -6,9 +6,10 @@
 #include "../include/address.h"
 #include "../include/packet.h"
 
-#define DEFAULT_WOL_PORT 7010
+#define WOL_PARTICIPANT_PORT 7010
+#define WOL_MANAGER_PORT 7011
 #define DEFAULT_PORT 8020
-#define BROADCAST_PORT 9040
+#define DISCOVERY_PORT 9040
 
 #define DEFAULT_TRY_MS 100
 
@@ -32,7 +33,7 @@ class UdpSenderSocket {
             uint8_t const *buffer,
             size_t length,
             IpAddress dest_ip_address,
-            uint16_t dest_port = DEFAULT_PORT
+            uint16_t dest_port = WOL_PARTICIPANT_PORT
         );
 
         /** Sends a serialized packet string. */
@@ -64,11 +65,14 @@ class UdpReceiverSocket {
         };
 
         int fd;
+        
+        thread_local static IpAddress dummy_ip;
 
         optional<size_t> receive_with_block_type(
             uint8_t *buffer,
             size_t capacity,
-            BlockType block_type
+            BlockType block_type,
+            IpAddress& src_address
         );
 
     public:
@@ -85,20 +89,28 @@ class UdpReceiverSocket {
         /** Receives a raw serialized packet into the given buffer. Returns the
          * packet size
          */
-        size_t receive(uint8_t *buffer, size_t capacity);
+        size_t receive(
+            uint8_t *buffer,
+            size_t capacity,
+            IpAddress& src_address = dummy_ip
+        );
 
         /** Like .receive() but does not block. Returns an empty value if a
          * packet could not be received.
          */
-        optional<size_t> try_receive(uint8_t *buffer, size_t capacity);
+        optional<size_t> try_receive(
+            uint8_t *buffer,
+            size_t capacity,
+            IpAddress& src_address = dummy_ip
+        );
 
         /** Receives a serialized packet string. */
-        string receive();
+        string receive(IpAddress& src_address = dummy_ip);
 
         /** Like .receive() but does not block. Returns an empty value if a
          * packet could not be received.
          */
-        optional<string> try_receive();
+        optional<string> try_receive(IpAddress& src_address = dummy_ip);
 
         /** Receives a packet that is automatically deserialized. If the packet
          * is not recognized in the deserialization, this method returns false.
@@ -161,8 +173,8 @@ class ServerSocket {
 
         /** Receives a Wake-On-LAN as the next request and sends a response. */
         void handle_wol(
-            IpAddress manager_ip_address,
-            uint16_t manager_port = DEFAULT_WOL_PORT
+            IpAddress dest_ip_address,
+            uint16_t dest_port = WOL_MANAGER_PORT
         );
 
         /** Enables or disables broadcast given the boolean argument. 

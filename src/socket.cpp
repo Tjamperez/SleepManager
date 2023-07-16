@@ -120,10 +120,13 @@ UdpReceiverSocket::~UdpReceiverSocket()
     }
 }
 
+thread_local IpAddress UdpReceiverSocket::dummy_ip;
+
 optional<size_t> UdpReceiverSocket::receive_with_block_type(
     uint8_t *buffer,
     size_t capacity,
-    UdpReceiverSocket::BlockType block_type)
+    UdpReceiverSocket::BlockType block_type,
+    IpAddress& src_address)
 {
     int flags;
     switch (block_type) {
@@ -134,52 +137,76 @@ optional<size_t> UdpReceiverSocket::receive_with_block_type(
             flags = MSG_DONTWAIT;
             break;
     }
-    ssize_t res = recv(this->fd, buffer, capacity, flags);
+
+    struct sockaddr_in sockaddr;
+    socklen_t addrlen = sizeof(sockaddr);
+    ssize_t res = recvfrom(
+        this->fd,
+        buffer,
+        capacity,
+        flags,
+        (struct sockaddr *) &sockaddr,
+        &addrlen
+    );
     if (res < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
             return optional<size_t>();
         }
         throw IOException("recvfrom");
     }
+
+    copy_n(
+        (uint8_t *) &sockaddr.sin_addr.s_addr,
+        src_address.size(),
+        src_address.begin()
+    );
+
     return make_optional(res);
 }
 
 size_t UdpReceiverSocket::receive(
     uint8_t *buffer,
-    size_t capacity)
+    size_t capacity,
+    IpAddress& src_address)
 {
     return this->receive_with_block_type(
         buffer,
         capacity,
-        UdpReceiverSocket::BLOCKING
+        UdpReceiverSocket::BLOCKING,
+        src_address
     ).value();
 }
 
 optional<size_t> UdpReceiverSocket::try_receive(
     uint8_t *buffer,
-    size_t capacity)
+    size_t capacity,
+    IpAddress& src_address)
 {
     return this->receive_with_block_type(
         buffer,
         capacity,
-        UdpReceiverSocket::NON_BLOCKING
+        UdpReceiverSocket::NON_BLOCKING,
+        src_address
     );
 }
 
-string UdpReceiverSocket::receive()
+string UdpReceiverSocket::receive(IpAddress& src_address)
 {
     string message(STR_BUF_SIZE, '\0');
     size_t read =
-        this->receive((uint8_t *) message.data(), STR_BUF_SIZE);
+        this->receive((uint8_t *) message.data(), STR_BUF_SIZE, src_address);
     message.resize(read);
     return message;
 }
 
-optional<string> UdpReceiverSocket::try_receive()
+optional<string> UdpReceiverSocket::try_receive(IpAddress& src_address)
 {
     string message(STR_BUF_SIZE, '\0');
-    optional<size_t> read =
-        this->try_receive((uint8_t *) message.data(), STR_BUF_SIZE);
+    optional<size_t> read = this->try_receive(
+        (uint8_t *) message.data(),
+        STR_BUF_SIZE,
+        src_address
+    );
     if (read.has_value()) {
         message.resize(read.value());
         return make_optional(message);
@@ -226,9 +253,7 @@ ServerSocket::Request ServerSocket::receive()
     return Request(packet);
 }
 
-void ServerSocket::handle_wol(
-    IpAddress manager_ip_address,
-    uint16_t manager_port)
+void ServerSocket::handle_wol(IpAddress dest_ip_address, uint16_t dest_port)
 {
     MagicPacket request_packet;
     size_t read =
@@ -246,11 +271,7 @@ void ServerSocket::handle_wol(
         timespec.tv_nsec / 1000 + timespec.tv_sec * 1000000;
     response_packet.body.type = PacketBody::WOL;
     UdpSenderSocket sender_socket;
-    sender_socket.send(
-        response_packet,
-        manager_ip_address,
-        manager_port
-    );
+    sender_socket.send(response_packet, dest_ip_address, dest_port);
 }
 
 void ServerSocket::enable_broadcast(bool enable)

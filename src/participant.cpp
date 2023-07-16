@@ -10,13 +10,15 @@ static void disconnect_to_manager(
     ClientSocket& client_socket,
     IpAddress manager_ip);
 
-static void listen_wakeup_message(
-    IpAddress manager_ip,
-    Mpsc<ParticipantMsg>::Receiver receiver);
+static void listen_wol();
 
 void participant_main(void)
 {
     ClientSocket client_socket;
+    
+    thread wol_thread(listen_wol);
+    wol_thread.detach();
+
     NodeAddresses manager_addresses = connect_to_manager(client_socket);
 
     auto channel_pair = Mpsc<ParticipantMsg>::open();
@@ -52,7 +54,7 @@ static NodeAddresses connect_to_manager(ClientSocket& client_socket)
     auto request = client_socket.request(
         packet_body,
         IpAddress { 255, 255, 255, 255 },
-        BROADCAST_PORT
+        DISCOVERY_PORT 
     );
     Packet response = request.receive_response();
 
@@ -71,8 +73,11 @@ static void disconnect_to_manager(
     request.receive_response();
 }
 
-static void listen_wakeup_message(
-    IpAddress manager_ip,
-    Mpsc<ParticipantMsg>::Receiver receiver)
+static void listen_wol()
 {
+    ServerSocket socket(WOL_PARTICIPANT_PORT);
+    socket.enable_broadcast();
+    while (true) {
+        socket.handle_wol(IpAddress { 255, 255, 255, 255 });
+    }
 }

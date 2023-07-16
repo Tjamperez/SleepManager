@@ -19,7 +19,7 @@ static void discovery_response(
 
 void discovery_main(shared_ptr<WorkStationTable> work_station_table)
 {
-    ServerSocket socket(BROADCAST_PORT);
+    ServerSocket socket(DISCOVERY_PORT);
     socket.enable_broadcast();
 
     while (true) {
