@@ -1,19 +1,30 @@
 #include "../include/work_station.h"
 #include "../include/manager.h"
+#include "../include/discovery.h"
+#include "../include/socket.h"
 #include "../include/interface.h"
-#include "../include/classes.h"
+#include <csignal>
+#include <thread>
+
+static void sigint_handler(int signal);
 
 void manager_main(void)
 {
-    /*
-    server_connection server;
-    server.start_server();
+    signal(SIGINT, sigint_handler);
 
-    shared_ptr<WorkStationTable> participants; //Adding this just to test interface. Discovery subservice will eiter return a list of participants or set a global variable
+    shared_ptr<WorkStationTable> participants;
+    thread discovery_thread(discovery_main, participants);
+    discovery_thread.detach();
 
-    bool is_participant = false;
-    Interface interface(is_participant,participants);
-    
-    interface.terminal();
-    */
+    manager_interface_main(participants);
+}
+
+static void sigint_handler(int signal)
+{
+    ClientSocket client_socket;
+    client_socket.enable_broadcast();
+    PacketBody packet_body;
+    packet_body.type = PacketBody::EXIT;
+    client_socket.request(packet_body, IpAddress { 255, 255, 255, 255 });
+    exit(130);
 }

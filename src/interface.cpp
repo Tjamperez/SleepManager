@@ -21,16 +21,18 @@ void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
     bool exit = false;
     while (!exit) {
         string input;
-        getline(cin, input);
+        if (getline(cin, input)) {
+            trim_whitespace(input);
+            transform(input.begin(), input.end(), input.begin(), ::toupper);
 
-        trim_whitespace(input);
-        transform(input.begin(), input.end(), input.begin(), ::toupper);
-
-        if (input == "EXIT") {
-            channel.send(PARTICIPANT_EXIT);
-            exit = true;
+            if (input == "EXIT") {
+                channel.send(PARTICIPANT_EXIT);
+                exit = true;
+            } else {
+                cerr << "Unknown command." << endl;
+            }
         } else {
-            cerr << "Unknown command." << endl;
+            exit = true;
         }
     }
 }
