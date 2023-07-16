@@ -1,6 +1,7 @@
 #ifndef PACKET_H_
 #define PACKET_H_
 
+#include <array>
 #include <string>
 #include <cstdint>
 #include "../include/address.h"
@@ -18,6 +19,10 @@ class InvalidPacketException: public exception {
         InvalidPacketException(string message_);
         virtual char const *what() const noexcept;
 };
+
+using MagicPacket = array<uint8_t, 6 * 17>;
+
+void make_magic_packet(MacAddress const &address, MagicPacket &dest);
 
 /** The header of a packet, which can be read by a task, but not written.
  * A socket class however could write to it.
@@ -59,7 +64,9 @@ struct PacketBody {
     /** An identtification of the packet's nature. 
      */
     enum Type { 
-        DISCOVERY = 0
+        DISCOVERY = 0,
+        EXIT = 1,
+        WOL = 2
     };
 
     /** Packet type. What is it for? What is being requested or responded? */

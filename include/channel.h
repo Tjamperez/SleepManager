@@ -50,7 +50,7 @@ class Mpsc<T>::Sender {
         Sender(Sender const&& obj);
         ~Sender();
 
-        void send(T message) const;
+        bool send(T message) const;
 };
 
 template <typename T>
@@ -108,12 +108,16 @@ Mpsc<T>::Sender::~Sender()
 }
 
 template <typename T>
-void Mpsc<T>::Sender::send(T message) const
+bool Mpsc<T>::Sender::send(T message) const
 {
     lock_guard<unique_lock<mutex>> lock_guard(this->channel->lock);
     this->channel->messages.push(move(message));
+    if (this->channel->state_tag == Mpsc::DISCONNECTED) {
+        return false;
+    }
     this->channel->state_tag = Mpsc::NEW_MESSAGE;
     this->channel->cond_var.notify_one();
+    return true;
 }
 
 template <typename T>

@@ -12,7 +12,9 @@
 
 #define STR_BUF_SIZE 0xffff
 
-SenderSocket::SenderSocket(): fd(-1)
+static atomic<uint64_t> global_seqn = 0;
+
+UdpSenderSocket::UdpSenderSocket(): fd(-1)
 {
     socket(AF_INET, SOCK_DGRAM, 0);
     if (this->fd < 0) {
@@ -20,14 +22,14 @@ SenderSocket::SenderSocket(): fd(-1)
     }
 }
 
-SenderSocket::~SenderSocket()
+UdpSenderSocket::~UdpSenderSocket()
 {
     if (this->fd >= 0) {
         close(this->fd);
     }
 }
 
-void SenderSocket::send(
+void UdpSenderSocket::send(
     uint8_t const *buffer,
     size_t length,
     IpAddress dest_ip_address,
@@ -57,7 +59,7 @@ void SenderSocket::send(
     }
 }
 
-void SenderSocket::send(
+void UdpSenderSocket::send(
     string message,
     IpAddress dest_ip_address,
     uint16_t dest_port)
@@ -70,7 +72,7 @@ void SenderSocket::send(
     );
 }
 
-void SenderSocket::send(
+void UdpSenderSocket::send(
     Packet const& packet,
     IpAddress dest_ip_address,
     uint16_t dest_port)
@@ -81,7 +83,7 @@ void SenderSocket::send(
     this->send(message, dest_ip_address, dest_port);
 }
 
-void SenderSocket::enable_broadcast(bool enable)
+void UdpSenderSocket::enable_broadcast(bool enable)
 {
     int enabled = enable;
     int status = setsockopt(
@@ -92,7 +94,7 @@ void SenderSocket::enable_broadcast(bool enable)
     }
 }
 
-ReceiverSocket::ReceiverSocket(uint16_t port): fd(-1)
+UdpReceiverSocket::UdpReceiverSocket(uint16_t port): fd(-1)
 {
     NodeAddresses addresses = NodeAddresses::load_host();
     socket(AF_INET, SOCK_DGRAM, 0);
@@ -111,24 +113,24 @@ ReceiverSocket::ReceiverSocket(uint16_t port): fd(-1)
     }
 }
 
-ReceiverSocket::~ReceiverSocket()
+UdpReceiverSocket::~UdpReceiverSocket()
 {
     if (this->fd >= 0) {
         close(this->fd);
     }
 }
 
-optional<size_t> ReceiverSocket::receive_with_block_type(
+optional<size_t> UdpReceiverSocket::receive_with_block_type(
     uint8_t *buffer,
     size_t capacity,
-    ReceiverSocket::BlockType block_type)
+    UdpReceiverSocket::BlockType block_type)
 {
     int flags;
     switch (block_type) {
-        case ReceiverSocket::BLOCKING:
+        case UdpReceiverSocket::BLOCKING:
             flags = 0;
             break;
-        case ReceiverSocket::NON_BLOCKING:
+        case UdpReceiverSocket::NON_BLOCKING:
             flags = MSG_DONTWAIT;
             break;
     }
@@ -142,29 +144,29 @@ optional<size_t> ReceiverSocket::receive_with_block_type(
     return make_optional(res);
 }
 
-size_t ReceiverSocket::receive(
+size_t UdpReceiverSocket::receive(
     uint8_t *buffer,
     size_t capacity)
 {
     return this->receive_with_block_type(
         buffer,
         capacity,
-        ReceiverSocket::BLOCKING
+        UdpReceiverSocket::BLOCKING
     ).value();
 }
 
-optional<size_t> ReceiverSocket::try_receive(
+optional<size_t> UdpReceiverSocket::try_receive(
     uint8_t *buffer,
     size_t capacity)
 {
     return this->receive_with_block_type(
         buffer,
         capacity,
-        ReceiverSocket::NON_BLOCKING
+        UdpReceiverSocket::NON_BLOCKING
     );
 }
 
-string ReceiverSocket::receive()
+string UdpReceiverSocket::receive()
 {
     string message(STR_BUF_SIZE, '\0');
     size_t read =
@@ -173,7 +175,7 @@ string ReceiverSocket::receive()
     return message;
 }
 
-optional<string> ReceiverSocket::try_receive()
+optional<string> UdpReceiverSocket::try_receive()
 {
     string message(STR_BUF_SIZE, '\0');
     optional<size_t> read =
@@ -185,14 +187,14 @@ optional<string> ReceiverSocket::try_receive()
     return optional<string>();
 }
 
-bool ReceiverSocket::receive(Packet& packet)
+bool UdpReceiverSocket::receive(Packet& packet)
 {
     string message = this->receive();
     PacketDeserializer deserializer(message);
     return packet.deserialize(deserializer);
 }
 
-optional<bool> ReceiverSocket::try_receive(Packet& packet)
+optional<bool> UdpReceiverSocket::try_receive(Packet& packet)
 {
     optional<string> message = this->try_receive();
     if (message.has_value()) {
@@ -202,7 +204,7 @@ optional<bool> ReceiverSocket::try_receive(Packet& packet)
     return optional<bool>();
 }
 
-void ReceiverSocket::enable_broadcast(bool enable)
+void UdpReceiverSocket::enable_broadcast(bool enable)
 {
     int enabled = enable;
     int status = setsockopt(
@@ -222,6 +224,33 @@ ServerSocket::Request ServerSocket::receive()
     Packet packet;
     while (!this->udp.receive(packet)) { }
     return Request(packet);
+}
+
+void ServerSocket::handle_wol(
+    IpAddress manager_ip_address,
+    uint16_t manager_port)
+{
+    MagicPacket request_packet;
+    size_t read =
+        this->udp.receive(request_packet.data(), request_packet.size());
+    if (read != request_packet.size()) {
+        throw InvalidPacketException("WOL packet must have length 6 * 17");
+    }
+    Packet response_packet;
+    response_packet.header.seqn = global_seqn++;
+    response_packet.header.direction = PacketHeader::RESPONSE;
+    response_packet.header.sender_addresses = NodeAddresses::load_host();
+    struct timespec timespec;
+    clock_gettime(CLOCK_REALTIME, &timespec);
+    response_packet.header.timestamp =
+        timespec.tv_nsec / 1000 + timespec.tv_sec * 1000000;
+    response_packet.body.type = PacketBody::WOL;
+    UdpSenderSocket sender_socket;
+    sender_socket.send(
+        response_packet,
+        manager_ip_address,
+        manager_port
+    );
 }
 
 void ServerSocket::enable_broadcast(bool enable)
@@ -255,15 +284,13 @@ void ServerSocket::Request::respond(PacketBody packet_body, uint16_t port)
     response_packet.header.timestamp =
         timespec.tv_nsec / 1000 + timespec.tv_sec * 1000000;
     response_packet.body = packet_body;
-    SenderSocket sender_socket;
+    UdpSenderSocket sender_socket;
     sender_socket.send(
         response_packet,
         this->received_packet_.header.sender_addresses.ip,
         port
     );
 }
-
-atomic<uint64_t> ClientSocket::seqn = 0;
 
 ClientSocket::Request ClientSocket::request(
     PacketBody packet_body,
@@ -272,14 +299,37 @@ ClientSocket::Request ClientSocket::request(
 {
     Packet packet;
     packet.header.sender_addresses = NodeAddresses::load_host();
-    packet.header.seqn = ClientSocket::seqn++;
+    packet.header.seqn = global_seqn++;
     struct timespec timespec;
     clock_gettime(CLOCK_REALTIME, &timespec);
     packet.header.timestamp =
         timespec.tv_nsec / 1000 + timespec.tv_sec * 1000000;
     packet.header.direction = PacketHeader::REQUEST;
     packet.body = packet_body;
-    ClientSocket::Request request(dest_ip_address, dest_port, packet);
+    PacketSerializer serializer;
+    packet.serialize(serializer);
+    string message = serializer.finish();
+    ClientSocket::Request request(message, dest_ip_address, dest_port);
+    request.send();
+    return request;
+}
+
+ClientSocket::Request ClientSocket::wol_request(
+    MacAddress mac_address,
+    IpAddress dest_ip_address,
+    uint16_t dest_port)
+{
+    MagicPacket packet;
+    for (size_t i = 0; i < 6; i++) {
+        packet[i] = 0xff;
+    }
+    for (size_t i = 0; i < 16; i++) {
+        for (size_t j = 0; j < mac_address.size(); j++) {
+            packet[6 + i * 6 + j] = mac_address[j];
+        }
+    }
+    string message((char *) packet.data(), packet.size());
+    ClientSocket::Request request(message, dest_ip_address, dest_port);
     request.send();
     return request;
 }
@@ -290,28 +340,23 @@ void ClientSocket::enable_broadcast(bool enable)
 }
 
 ClientSocket::Request::Request(
+    string sent_packet_,
     IpAddress dest_ip_address__,
-    uint16_t dest_port__,
-    Packet sent_packet__):
+    uint16_t dest_port__):
+        sent_packet(sent_packet_),
         dest_ip_address_(dest_ip_address__),
-        dest_port_(dest_port__),
-        sent_packet_(sent_packet__)
+        dest_port_(dest_port__)
 {
 }
 
 void ClientSocket::Request::send()
 {
-    SenderSocket socket;
+    UdpSenderSocket socket;
     socket.send(
-        this->sent_packet(),
+        this->sent_packet,
         this->dest_ip_address(),
         this->dest_port()
     );
-}
-
-Packet ClientSocket::Request::sent_packet() const
-{
-    return this->sent_packet_;
 }
 
 IpAddress ClientSocket::Request::dest_ip_address() const
@@ -329,7 +374,7 @@ Packet ClientSocket::Request::receive_response(
     uint64_t try_wait_ms)
 {
     bool done = false;
-    ReceiverSocket socket(port);
+    UdpReceiverSocket socket(port);
     Packet received_packet;
     while (!done) {
         optional<bool> read = socket.try_receive(received_packet);

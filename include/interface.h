@@ -9,17 +9,17 @@
 #include <memory>
 #include "../include/channel.h"
 #include "../include/work_station.h"
+#include "../include/participant.h"
 
 using namespace std;
 
-enum InterfaceType {
-    INTERFACE_PARTICIPANT,
-    INTERFACE_MANAGER
-};
+void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel);
 
+/*
 void interface_main(
     InterfaceType type,
     shared_ptr<WorkStationTable> participants);
+    */
 
 /*
 void interface_main(

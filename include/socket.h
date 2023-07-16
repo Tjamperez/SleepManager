@@ -6,25 +6,26 @@
 #include "../include/address.h"
 #include "../include/packet.h"
 
-#define DEFAULT_PORT 8010
-#define BROADCAST_PORT 9020
+#define DEFAULT_WOL_PORT 7010
+#define DEFAULT_PORT 8020
+#define BROADCAST_PORT 9040
 
 #define DEFAULT_TRY_MS 100
 
 using namespace std;
 
-/** A raw socket used only for sending packets. Do not use directly. */
-class SenderSocket {
+/** A raw UDP socket used only for sending packets. Do not use directly. */
+class UdpSenderSocket {
     private:
         int fd;
     public:
         /** Creates an anonymous sender socket. */
-        SenderSocket();
-        SenderSocket(SenderSocket const& obj) = delete;
+        UdpSenderSocket();
+        UdpSenderSocket(UdpSenderSocket const& obj) = delete;
         /** Closes the socket (destructor). */
-        ~SenderSocket();
+        ~UdpSenderSocket();
 
-        SenderSocket &operator=(SenderSocket const& obj) = delete;
+        UdpSenderSocket &operator=(UdpSenderSocket const& obj) = delete;
 
         /** Sends a raw serialized packet. */
         void send(
@@ -54,8 +55,8 @@ class SenderSocket {
         void enable_broadcast(bool enable = true);
 };
 
-/** A raw socket used only for receiving packets. Do not use directly. */
-class ReceiverSocket {
+/** A raw UDP socket used only for receiving packets. Do not use directly. */
+class UdpReceiverSocket {
     private:
         enum BlockType {
             BLOCKING,
@@ -74,12 +75,12 @@ class ReceiverSocket {
         /** Creates a receiver socket that will listen to the given port in
          * the host's IP address.
          */
-        ReceiverSocket(uint16_t port);
-        ReceiverSocket(ReceiverSocket const& obj) = delete;
+        UdpReceiverSocket(uint16_t port);
+        UdpReceiverSocket(UdpReceiverSocket const& obj) = delete;
         /** Closes the socket (destructor). */
-        ~ReceiverSocket();
+        ~UdpReceiverSocket();
 
-        ReceiverSocket &operator=(ReceiverSocket const& obj) = delete;
+        UdpReceiverSocket &operator=(UdpReceiverSocket const& obj) = delete;
 
         /** Receives a raw serialized packet into the given buffer. Returns the
          * packet size
@@ -147,7 +148,7 @@ class ServerSocket {
         };
 
     private:
-        ReceiverSocket udp;
+        UdpReceiverSocket udp;
 
     public:
         /** Creates a server socket listening to the given port in the host's IP
@@ -157,6 +158,12 @@ class ServerSocket {
 
         /** Receives the next request. */
         Request receive();
+
+        /** Receives a Wake-On-LAN as the next request and sends a response. */
+        void handle_wol(
+            IpAddress manager_ip_address,
+            uint16_t manager_port = DEFAULT_WOL_PORT
+        );
 
         /** Enables or disables broadcast given the boolean argument. 
          * If no argument is given, then broadcast is enabled.
@@ -174,27 +181,24 @@ class ClientSocket {
             friend ClientSocket;
 
             private:
+                string sent_packet;
                 IpAddress dest_ip_address_;
                 uint16_t dest_port_;
-                Packet sent_packet_;
                 Request(
+                    string sent_packet_,
                     IpAddress dest_ip_address__,
-                    uint16_t dest_port__,
-                    Packet sent_packet__
+                    uint16_t dest_port__
                 );
                 void send();
 
             public:
-                /** Returns the packet sent in the request. */
-                Packet sent_packet() const;
-
                 /** Port to where the packet is sent. */
                 IpAddress dest_ip_address() const;
 
                 /** Port to where the packet is sent. */
                 uint16_t dest_port() const;
 
-                /** Receives the response possibly repeating the request */
+                /** Receives the response possibly repeating the request. */
                 Packet receive_response(
                     uint16_t port = DEFAULT_PORT,
                     uint64_t try_wait_ms = DEFAULT_TRY_MS
@@ -202,14 +206,19 @@ class ClientSocket {
         };
 
     private:
-        SenderSocket udp;
-
-        static atomic<uint64_t> seqn;
+        UdpSenderSocket udp;
 
     public:
         /** Performs a request to the given IP and port. */
         Request request(
             PacketBody packet_body,
+            IpAddress dest_ip_address,
+            uint16_t dest_port = DEFAULT_PORT
+        );
+
+        /** Performs a Wake-On-LAN request to the given MAC and IP and ports. */
+        Request wol_request(
+            MacAddress dest_mac_address,
             IpAddress dest_ip_address,
             uint16_t dest_port = DEFAULT_PORT
         );

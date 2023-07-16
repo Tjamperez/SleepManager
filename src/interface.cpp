@@ -2,12 +2,45 @@
 #include <thread>
 #include <algorithm>
 
+static void trim_whitespace(string &input);
+
+void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
+{
+    bool exit = false;
+    while (!exit) {
+        string input;
+        getline(cin, input);
+
+        trim_whitespace(input);
+        transform(input.begin(), input.end(), input.begin(), ::toupper);
+
+        if (input == "EXIT") {
+            channel.send(PARTICIPANT_EXIT);
+            exit = true;
+        } else {
+            cerr << "Unknown command." << endl;
+        }
+    }
+}
+
+static void trim_whitespace(string &input)
+{
+    input.erase(input.begin(), find_if(input.begin(), input.end(), [](char ch) {
+        return !iswspace(ch);
+    }));
+    input.erase(
+        find_if(input.rbegin(), input.rend(), [](char ch) {
+            return !iswspace(ch);
+        }).base(),
+        input.end()
+    );
+}
+
+/*
 enum InterfaceMsg {
     INTERFACE_EXIT,
     INTERFACE_REFRESH
 };
-
-static void trim_whitespace(string &input);
 
 static void render(vector<shared_ptr<WorkStation>> participants);
 
@@ -168,18 +201,7 @@ static void render(vector<shared_ptr<WorkStation>> participants)
     }
 }
 
-static void trim_whitespace(string &input)
-{
-    input.erase(input.begin(), find_if(input.begin(), input.end(), [](char ch) {
-        return !iswspace(ch);
-    }));
-    input.erase(
-        find_if(input.rbegin(), input.rend(), [](char ch) {
-            return !iswspace(ch);
-        }).base(),
-        input.end()
-    );
-}
+*/
 
 /*
 void interface_main(
