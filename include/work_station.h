@@ -20,6 +20,7 @@ class WorkStationTable {
         shared_mutex rw_data_lock;
         map<MacAddress, shared_ptr<WorkStation>> mac_address_index;
         map<IpAddress, shared_ptr<WorkStation>> ip_address_index;
+        map<string, shared_ptr<WorkStation>> hostname_index;
 
         /* event handlers */
         mutex event_lock;
@@ -31,6 +32,7 @@ class WorkStationTable {
 
     private:
         void dispatch_event(WorkStationEvent event);
+        void on_remove(shared_ptr<WorkStation> node);
 
     public:
 
@@ -41,7 +43,7 @@ class WorkStationTable {
         void register_event_handler(F event_handler);
 
         /** Inserts the given work station, returning whether this is a new work
-         * station.
+         * station. Duplicate hostnames will not be allowed.
          */
         bool insert(shared_ptr<WorkStation> node);
 
@@ -55,6 +57,11 @@ class WorkStationTable {
          */
         bool remove_by_ip_address(IpAddress const &address);
 
+        /** Removes a work station given its hostname. Returns whether the
+         * element was actually present.
+         */
+        bool remove_by_hostname(string const &hostname);
+
         /** Gets a work station given its MAC address. Returns nullptr if not
          * found.
          */
@@ -65,18 +72,23 @@ class WorkStationTable {
          */
         shared_ptr<WorkStation> get_by_ip_address(IpAddress const& address);
 
+        /** Gets a work station given its hostname. Returns nullptr if not
+         * found.
+         */
+        shared_ptr<WorkStation> get_by_hostname(string const& hostname);
+
+        /**
+         * Wakes up by hostname. Returns whether it actually woke up.
+         */
+        bool wakeup(string const& hostname);
+
         /** Creates a list of work stations. */
         vector<shared_ptr<WorkStation>> to_list();
 };
 
 /** A participant work station. */
 class WorkStation {
-    friend bool WorkStationTable::remove_by_mac_address(
-        MacAddress const& address
-    );
-    friend bool WorkStationTable::remove_by_ip_address(
-        IpAddress const& address
-    );
+    friend WorkStationTable;
 
     public:
         /** Status of the work station in the network. */

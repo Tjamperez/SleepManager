@@ -40,11 +40,15 @@ void WorkStationTable::dispatch_event(WorkStationEvent event)
 
 bool WorkStationTable::insert(shared_ptr<WorkStation> node)
 {
+    if (node->status() == WorkStation::DISCONNECTED) {
+        return false;
+    }
     lock_guard<shared_mutex> lock(this->rw_data_lock);
     bool inserted = get<1>(
-        this->mac_address_index.insert(make_pair(node->addresses().mac, node))
+        this->hostname_index.insert(make_pair(node->addresses().hostname, node))
     );
     if (inserted) {
+        this->mac_address_index.insert(make_pair(node->addresses().mac, node));
         this->ip_address_index.insert(make_pair(node->addresses().ip, node));
         struct WorkStationEvent event;
         event.type = WorkStationEvent::INSERTION;
@@ -54,6 +58,18 @@ bool WorkStationTable::insert(shared_ptr<WorkStation> node)
     return inserted;
 }
 
+void WorkStationTable::on_remove(shared_ptr<WorkStation> node)
+{
+    {
+        lock_guard<shared_mutex> lock_guard(node->rw_status_lock);
+        node->status_ = WorkStation::DISCONNECTED;
+    }
+    struct WorkStationEvent event;
+    event.type = WorkStationEvent::REMOVAL;
+    event.work_station = node;
+    this->dispatch_event(event);
+}
+
 bool WorkStationTable::remove_by_mac_address(MacAddress const &address)
 {
     lock_guard<shared_mutex> table_lock(this->rw_data_lock);
@@ -61,14 +77,9 @@ bool WorkStationTable::remove_by_mac_address(MacAddress const &address)
     if (handle.empty()) {
         return false;
     }
-    {
-        this->ip_address_index.extract(handle.mapped()->addresses().ip);
-        handle.mapped()->status_ = WorkStation::DISCONNECTED;
-    }
-    struct WorkStationEvent event;
-    event.type = WorkStationEvent::REMOVAL;
-    event.work_station = handle.mapped();
-    this->dispatch_event(event);
+    this->ip_address_index.extract(handle.mapped()->addresses().ip);
+    this->hostname_index.extract(handle.mapped()->addresses().hostname);
+    this->on_remove(handle.mapped());
     return true;
 }
 
@@ -80,14 +91,21 @@ bool WorkStationTable::remove_by_ip_address(IpAddress const &address)
         return false;
     }
     this->mac_address_index.extract(handle.mapped()->addresses().mac);
-    {
-        lock_guard<shared_mutex> station_lock(handle.mapped()->rw_status_lock);
-        handle.mapped()->status_ = WorkStation::DISCONNECTED;
+    this->hostname_index.extract(handle.mapped()->addresses().hostname);
+    this->on_remove(handle.mapped());
+    return true;
+}
+
+bool WorkStationTable::remove_by_hostname(string const &hostname)
+{
+    lock_guard<shared_mutex> table_lock(this->rw_data_lock);
+    auto handle = this->hostname_index.extract(hostname);
+    if (handle.empty()) {
+        return false;
     }
-    struct WorkStationEvent event;
-    event.type = WorkStationEvent::REMOVAL;
-    event.work_station = handle.mapped();
-    this->dispatch_event(event);
+    this->mac_address_index.extract(handle.mapped()->addresses().mac);
+    this->ip_address_index.extract(handle.mapped()->addresses().ip);
+    this->on_remove(handle.mapped());
     return true;
 }
 
@@ -111,6 +129,28 @@ shared_ptr<WorkStation> WorkStationTable::get_by_ip_address(
     } catch (out_of_range exception) {
         return shared_ptr<WorkStation>(nullptr);
     }
+}
+
+shared_ptr<WorkStation> WorkStationTable::get_by_hostname(
+        string const &hostname)
+{
+    SharedLockGuard<shared_mutex> lock(this->rw_data_lock);
+    try {
+        return this->hostname_index.at(hostname);
+    } catch (out_of_range exception) {
+        return shared_ptr<WorkStation>(nullptr);
+    }
+}
+
+bool WorkStationTable::wakeup(string const& hostname)
+{
+    shared_ptr<WorkStation> station = this->get_by_hostname(hostname);
+    lock_guard<shared_mutex> lock_guard(station->rw_status_lock);
+    if (station->status_ == WorkStation::ASLEEP) {
+        station->status_ = WorkStation::AWAKE;
+        return true;
+    }
+    return false;
 }
 
 vector<shared_ptr<WorkStation>> WorkStationTable::to_list()

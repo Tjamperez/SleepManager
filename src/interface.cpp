@@ -7,6 +7,8 @@ enum InterfaceMsg {
     INTERFACE_REFRESH
 };
 
+static void trim_whitespace(string &input);
+
 static void render(vector<shared_ptr<WorkStation>> participants);
 
 void interface_main(shared_ptr<WorkStationTable> participants)
@@ -19,21 +21,41 @@ void interface_main(shared_ptr<WorkStationTable> participants)
         sender.send(INTERFACE_REFRESH);
     });
 
-    thread input_thread([& sender] () {
+    thread input_thread([sender = move(sender), participants] () {
         bool exit = false;
         while (!exit) {
             string input;
             getline(cin, input);
 
             transform(input.begin(), input.end(), input.begin(), ::toupper);
+            trim_whitespace(input);
+
+            size_t whitespace_pos = input.find(' ');
+            string command = input.substr(0, whitespace_pos);
+            string argument = input.substr(whitespace_pos);
+            trim_whitespace(argument);
 
             if (input == "EXIT") {
+                if (argument.size() > 0) {
+                    cerr << "EXIT does not expect an argument." << endl;
+                }
                 sender.send(INTERFACE_EXIT);
                 exit = true;
+            } else if (input == "WAKEUP") {
+                if (argument.size() == 0) {
+                    cerr << "WAKEUP expects a hostname." << endl;
+                } else {
+                    bool woke_up = participants->wakeup(argument);
+                    if (!woke_up) {
+                        cerr << "could not wake up " << argument << endl;
+                    }
+                }
             }
         }
     });
     input_thread.detach();
+
+    render(participants->to_list());
 
     bool exit = false;
     while (!exit) {
@@ -136,6 +158,19 @@ static void render(vector<shared_ptr<WorkStation>> participants)
         }
         cout << endl;
     }
+}
+
+static void trim_whitespace(string &input)
+{
+    input.erase(input.begin(), find_if(input.begin(), input.end(), [](char ch) {
+        return !iswspace(ch);
+    }));
+    input.erase(
+        find_if(input.rbegin(), input.rend(), [](char ch) {
+            return !iswspace(ch);
+        }).base(),
+        input.end()
+    );
 }
 
 /*
