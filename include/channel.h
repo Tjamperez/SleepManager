@@ -39,11 +39,15 @@ class Mpsc {
 
 template <typename T>
 class Mpsc<T>::Sender {
+    friend Mpsc<T>;
+
     private:
         shared_ptr<Mpsc<T>> channel;
         Sender(shared_ptr<Mpsc<T>> channel_);
 
     public:
+        Sender(Sender const& obj);
+        Sender(Sender const&& obj);
         ~Sender();
 
         void send(T message) const;
@@ -51,6 +55,8 @@ class Mpsc<T>::Sender {
 
 template <typename T>
 class Mpsc<T>::Receiver {
+    friend Mpsc<T>;
+
     private:
         shared_ptr<Mpsc<T>> channel;
         Receiver(shared_ptr<Mpsc<T>> channel_);
@@ -58,6 +64,7 @@ class Mpsc<T>::Receiver {
     public:
         Receiver(Receiver const& obj) = delete;
         Receiver& operator=(Receiver const& obj) = delete;
+        Receiver(Receiver const&& obj);
         ~Receiver();
 
         optional<T> receive();
@@ -83,6 +90,18 @@ Mpsc<T>::Sender::Sender(shared_ptr<Mpsc<T>> channel_):
 }
 
 template <typename T>
+Mpsc<T>::Sender::Sender(Sender const& obj):
+    channel(obj.channel)
+{
+}
+
+template <typename T>
+Mpsc<T>::Sender::Sender(Sender const&& obj):
+    channel(move(obj.channel))
+{
+}
+
+template <typename T>
 Mpsc<T>::Sender::~Sender()
 {
     this->channel->state_tag = Mpsc::DISCONNECTED;
@@ -92,7 +111,7 @@ template <typename T>
 void Mpsc<T>::Sender::send(T message) const
 {
     lock_guard<unique_lock<mutex>> lock_guard(this->channel->lock);
-    this->channel->queue.push(move(message));
+    this->channel->messages.push(move(message));
     this->channel->state_tag = Mpsc::NEW_MESSAGE;
     this->channel->cond_var.notify_one();
 }
@@ -100,6 +119,12 @@ void Mpsc<T>::Sender::send(T message) const
 template <typename T>
 Mpsc<T>::Receiver::Receiver(shared_ptr<Mpsc<T>> channel_):
     channel(channel_)
+{
+}
+
+template <typename T>
+Mpsc<T>::Receiver::Receiver(Receiver const&& obj):
+    channel(move(obj.channel))
 {
 }
 
@@ -116,15 +141,15 @@ template <typename T>
 optional<T> Mpsc<T>::Receiver::receive()
 {
     while (true) {
-        this->channel->lock->lock();
+        this->channel->lock.lock();
         switch (this->channel->state_tag) {
             case Mpsc::NEW_MESSAGE: {
-                T message = this->channel->queue.front();
-                this->channel->queue.pop();
-                if (this->channel->queue.empty()) {
+                T message = this->channel->messages.front();
+                this->channel->messages.pop();
+                if (this->channel->messages.empty()) {
                     this->channel->state_tag = Mpsc::UP_TO_DATE;
                 }
-                this->channel->lock->unlock();
+                this->channel->lock.unlock();
                 return make_optional(message);
             }
             case Mpsc::UP_TO_DATE:
@@ -136,7 +161,7 @@ optional<T> Mpsc<T>::Receiver::receive()
                 );
                 break;
             case Mpsc::DISCONNECTED:
-                this->channel->lock->unlock();
+                this->channel->lock.unlock();
                 return optional<T>();
         }
     }

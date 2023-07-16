@@ -10,14 +10,9 @@
 #include "../include/channel.h"
 #include "../include/work_station.h"
 
-#define EXIT "EXIT"
-#define WAKEUP "WAKEUP"
 using namespace std;
 
-enum InterfaceMessage {
-    INTERFACE_EXIT,
-    INTERFACE_REFRESH
-};
+void interface_main(shared_ptr<WorkStationTable> participants);
 
 /*
 void interface_main(

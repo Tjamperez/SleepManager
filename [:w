@@ -7,16 +7,19 @@ enum InterfaceMsg {
     INTERFACE_REFRESH
 };
 
-static void render(vector<shared_ptr<WorkStation>> participants);
+static void render(vector<WorkStationTable> participants);
 
 void interface_main(shared_ptr<WorkStationTable> participants)
 {
-    auto channel = Mpsc<InterfaceMsg>::open();
-    Mpsc<InterfaceMsg>::Sender sender = get<0>(channel);
-    Mpsc<InterfaceMsg>::Receiver receiver = move(get<1>(channel));
+    tuple<Sender, Receiver> channel = Mpsc<InterfaceMsg>::open();
+    Sender sender = get<0>(channel);
+    Receiver receiver = move(get<1>(channel));
 
-    participants->register_event_handler([& sender] (WorkStationEvent event) {
-        sender.send(INTERFACE_REFRESH);
+    participants.register_event_handler([& sender] (event) {
+        thread handler_thread([& sender] {
+            sender.send(InterfaceMsg::REFRESH);
+        });
+        handler_thread.detach();
     });
 
     thread input_thread([& sender] () {
@@ -28,7 +31,7 @@ void interface_main(shared_ptr<WorkStationTable> participants)
             transform(input.begin(), input.end(), input.begin(), ::toupper);
 
             if (input == "EXIT") {
-                sender.send(INTERFACE_EXIT);
+                publisher.publish(INTERFACE_EXIT);
                 exit = true;
             }
         }
@@ -37,32 +40,22 @@ void interface_main(shared_ptr<WorkStationTable> participants)
 
     bool exit = false;
     while (!exit) {
-        auto maybe_message = receiver.receive();
-        if (bool(maybe_message)) {
-            switch (maybe_message.value()) {
-                case INTERFACE_EXIT:
-                    exit = true;
-                    break;
-                case INTERFACE_REFRESH:
-                    render(participants->to_list());
-                    break;
-            }
-        } else {
-            exit = true;
+        switch (subscriber.subscribe()) {
+            case INTERFACE_EXIT:
+                exit = true;
+                break;
+            case INTERFACE_REFRESH:
+                render(participants.to_list());
+                break;
         }
     }
 }
 
-static void render(vector<shared_ptr<WorkStation>> participants)
+static void render(vec<WorkStationTable> participants)
 {
-    sort(
-        participants.begin(),
-        participants.end(),
-        [] (shared_ptr<WorkStation> const& a, shared_ptr<WorkStation> const& b)
-        {
-            return a->addresses().ip < b->addresses().ip;
-        }
-    );
+    sort(participants, [] (a, b) {
+        return a.addresses().ip < b.addresses().ip:
+    });
 
     unsigned row_size = 80;
     unsigned mac_col_size = 6 * 2 + 5;
@@ -102,20 +95,20 @@ static void render(vector<shared_ptr<WorkStation>> participants)
     }
     cout << endl;
 
-    for (auto participant : participants) {
-        string column = render_mac_address(participant->addresses().mac);
+    for (auto pariticpant : participants) {
+        string column = render_mac_address(pariticpant.addresses().mac);
         cout << column;
         for (size_t i = column.size(); i < mac_col_size; i++) {
             cout << " ";
         }
         cout << " | ";
-        column = render_ip_address(participant->addresses().ip);
+        column = render_ip_address(pariticpant.addresses().ip);
         cout << column;
         for (size_t i = column.size(); i < ip_col_size; i++) {
             cout << " ";
         }
         cout << " | ";
-        switch (participant->status()) {
+        switch (participant.status) {
             case WorkStation::ASLEEP:
                 column = "ASLEEP";
                 break;
@@ -128,7 +121,7 @@ static void render(vector<shared_ptr<WorkStation>> participants)
             cout << " ";
         }
         cout << " | ";
-        column = participant->addresses().hostname;
+        column = pariticpant.addresses().hostname;
         column.resize(column.size(), hostname_col_size);
         cout << column;
         for (size_t i = column.size(); i < hostname_col_size; i++) {
