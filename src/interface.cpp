@@ -11,6 +11,11 @@ static void trim_whitespace(string &input);
 
 static void render(vector<shared_ptr<WorkStation>> participants);
 
+static void handle_manager_input(
+    Mpsc<ManagerIfaceMsg>::Sender sender,
+    shared_ptr<WorkStationTable> participants
+);
+
 void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
 {
     bool exit = false;
@@ -40,36 +45,7 @@ void manager_interface_main(shared_ptr<WorkStationTable> participants)
         sender.send(MANAGER_IFACE_REFRESH);
     });
 
-    thread input_thread([sender = move(sender), participants] () {
-        bool exit = false;
-        while (!exit) {
-            string input;
-            getline(cin, input);
-
-            trim_whitespace(input);
-
-            size_t whitespace_pos = input.find(' ');
-            string command = input.substr(0, whitespace_pos);
-            transform(
-                command.begin(),
-                command.end(),
-                command.begin(),
-                ::toupper);
-            string argument = input.substr(whitespace_pos);
-            trim_whitespace(argument);
-
-            if (input == "WAKEUP") {
-                if (argument.size() == 0) {
-                    cerr << "WAKEUP expects a hostname." << endl;
-                } else {
-                    bool woke_up = participants->wakeup(argument);
-                    if (!woke_up) {
-                        cerr << "could not wake up " << argument << endl;
-                    }
-                }
-            }
-        }
-    });
+    thread input_thread(handle_manager_input, move(sender), participants);
     input_thread.detach();
 
     render(participants->to_list());
@@ -174,6 +150,44 @@ static void render(vector<shared_ptr<WorkStation>> participants)
             cout << " ";
         }
         cout << endl;
+    }
+}
+
+static void handle_manager_input(
+    Mpsc<ManagerIfaceMsg>::Sender sender,
+    shared_ptr<WorkStationTable> participants)
+{
+    bool exit = false;
+    while (!exit) {
+        string input;
+        if (getline(cin, input)) {
+            trim_whitespace(input);
+
+            size_t whitespace_pos = input.find(' ');
+            string command = input.substr(0, whitespace_pos);
+            transform(
+                command.begin(),
+                command.end(),
+                command.begin(),
+                ::toupper);
+            string argument = input.substr(whitespace_pos);
+            trim_whitespace(argument);
+
+            if (command == "WAKEUP") {
+                if (argument.size() == 0) {
+                    cerr << "WAKEUP expects a hostname." << endl;
+                } else {
+                    bool woke_up = participants->wakeup(argument);
+                    if (!woke_up) {
+                        cerr << "could not wake up " << argument << endl;
+                    }
+                }
+            } else {
+                cerr << "Unknown command." << endl;
+            }
+        } else {
+            exit = true;
+        }
     }
 }
 

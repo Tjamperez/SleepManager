@@ -3,6 +3,11 @@
 #include "../include/interface.h"
 #include "../include/socket.h"
 #include <thread>
+#include <csignal>
+
+static atomic<IpAddress> manager_ip;
+
+static void sigint_handler(int signal);
 
 static NodeAddresses connect_to_manager(ClientSocket& client_socket);
 
@@ -20,6 +25,8 @@ void participant_main(void)
     wol_thread.detach();
 
     NodeAddresses manager_addresses = connect_to_manager(client_socket);
+    manager_ip = manager_addresses.ip;
+    signal(SIGINT, sigint_handler);
 
     auto channel_pair = Mpsc<ParticipantMsg>::open();
     Mpsc<ParticipantMsg>::Sender sender = move(get<0>(channel_pair));
@@ -80,4 +87,11 @@ static void listen_wol()
     while (true) {
         socket.handle_wol(IpAddress { 255, 255, 255, 255 });
     }
+}
+
+static void sigint_handler(int signal)
+{
+    ClientSocket client_socket;
+    disconnect_to_manager(client_socket, manager_ip);
+    exit(130);
 }
