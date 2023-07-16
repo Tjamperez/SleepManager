@@ -7,13 +7,22 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
+#include "../include/channel.h"
 #include "../include/work_station.h"
 
 #define EXIT "EXIT"
 #define WAKEUP "WAKEUP"
 using namespace std;
 
-void interface_main(shared_ptr<WorkStationTable> participants);
+enum InterfaceMessage {
+    INTERFACE_EXIT,
+    INTERFACE_REFRESH
+};
+
+/*
+void interface_main(
+    shared_ptr<WorkStationTable> participants,
+    Broadcast<InterfaceMessage> channel);
 
 class Interface {
     protected:
@@ -30,5 +39,6 @@ class Interface {
         );
         void terminal();
 };
+    */
 
 #endif

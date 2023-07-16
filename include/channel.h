@@ -1,6 +1,8 @@
 #ifndef CHANNEL_H_
 #define CHANNEL_H_
 
+#include <tuple>
+#include <optional>
 #include <memory>
 #include <forward_list>
 #include <queue>
@@ -12,158 +14,132 @@
 using namespace std;
 
 template <typename T>
-class Broadcast {
-    using WriteLock = unique_lock<shared_ptr<shared_mutex>>;
-    using ReadLock = shared_lock<shared_ptr<shared_mutex>>;
+class Mpsc {
+    public:
+        class Sender;
+        class Receiver;
 
     private:
-        class SubscriberInner {
-            public:
-                atomic<bool> has_message;
-                queue<T> msg_queue;
+        enum StateTag {
+            UP_TO_DATE,
+            NEW_MESSAGE,
+            DISCONNECTED
         };
 
-        class ChannelInner {
-            public:
-                WriteLock subscribers_write_lock;
-                ReadLock subscribers_read_lock;
-                condition_variable_any publish_cond_var;
-                forward_list<weak_ptr<SubscriberInner>> subscribers;
-        };
-    public:
-        class Subscriber;
+        unique_lock<mutex> lock;
+        condition_variable cond_var;
+        atomic<StateTag> state_tag;
+        queue<T> messages;
 
-        class Publisher;
-
-    private:
-        shared_ptr<ChannelInner> inner_state;
+        Mpsc();
 
     public:
-        Broadcast();
-
-        Subscriber make_subscriber();
-        Publisher make_publisher();
-};
-
-
-template <typename T>
-class Broadcast<T>::Subscriber {
-    friend Subscriber Broadcast<T>::make_subscriber();
-
-    private:
-        shared_ptr<SubscriberInner> inner_state;
-        Broadcast<T> channel_;
-
-        Subscriber(Broadcast<T> channel);
-
-    public:
-        T subscribe();
-
-        Broadcast<T> channel() const;
+        static tuple<Sender, Receiver> open();
 };
 
 template <typename T>
-class Broadcast<T>::Publisher {
-    friend Publisher Broadcast<T>::make_publisher();
-
+class Mpsc<T>::Sender {
     private:
-        Broadcast<T> channel_;
-
-        Publisher(Broadcast<T> channel);
+        shared_ptr<Mpsc<T>> channel;
+        Sender(shared_ptr<Mpsc<T>> channel_);
 
     public:
-        void publish(T message);
+        ~Sender();
 
-        Broadcast<T> channel() const;
+        void send(T message) const;
 };
 
 template <typename T>
-Broadcast<T>::Broadcast():
-    inner_state(Broadcast<T>::ChannelInner())
+class Mpsc<T>::Receiver {
+    private:
+        shared_ptr<Mpsc<T>> channel;
+        Receiver(shared_ptr<Mpsc<T>> channel_);
+
+    public:
+        Receiver(Receiver const& obj) = delete;
+        Receiver& operator=(Receiver const& obj) = delete;
+        ~Receiver();
+
+        optional<T> receive();
+};
+
+template <typename T>
+Mpsc<T>::Mpsc():
+    state_tag(Mpsc::UP_TO_DATE)
 {
 }
 
 template <typename T>
-typename Broadcast<T>::Subscriber Broadcast<T>::make_subscriber()
+tuple<typename Mpsc<T>::Sender, typename Mpsc<T>::Receiver> Mpsc<T>::open()
 {
-    return Subscriber(*this);
+    shared_ptr<Mpsc> channel(new Mpsc());
+    return make_pair(Sender(channel), Receiver(channel));
 }
 
 template <typename T>
-typename Broadcast<T>::Publisher Broadcast<T>::make_publisher()
+Mpsc<T>::Sender::Sender(shared_ptr<Mpsc<T>> channel_):
+    channel(channel_)
 {
-    return Publisher(*this);
 }
 
 template <typename T>
-Broadcast<T>::Subscriber::Subscriber(Broadcast<T> channel):
-    channel_(channel),
-    inner_state(SubscriberInner())
+Mpsc<T>::Sender::~Sender()
 {
-    lock_guard<WriteLock> subscribers_lock(
-        this->channel_.inner_state.subscribers_write_lock
-    );
-    this->channel_.inner_state.subscribers(this->inner_state);
+    this->channel->state_tag = Mpsc::DISCONNECTED;
 }
 
 template <typename T>
-T Broadcast<T>::Subscriber::subscribe()
+void Mpsc<T>::Sender::send(T message) const
 {
-    this->channel_.inner_state.subscribers_read_lock.lock();
-    if (this->inner_state.msg_queue.empty()) {
-        this->inner_state.has_message = false;
-        this->channel_.inner_state.condition_variable_any.wait(
-            this->channel_.inner_state.subscribers_read_lock,
-            [inner_state = this->inner_state] () {
-                return inner_state.has_message;
-            }
-        );
-        this->channel_.inner_state.subscribers_read_lock.lock();
+    lock_guard<unique_lock<mutex>> lock_guard(this->channel->lock);
+    this->channel->queue.push(move(message));
+    this->channel->state_tag = Mpsc::NEW_MESSAGE;
+    this->channel->cond_var.notify_one();
+}
+
+template <typename T>
+Mpsc<T>::Receiver::Receiver(shared_ptr<Mpsc<T>> channel_):
+    channel(channel_)
+{
+}
+
+template <typename T>
+Mpsc<T>::Receiver::~Receiver()
+{
+    if (this->channel.use_count() <= 2) {
+        this->channel->state_tag = Mpsc::DISCONNECTED;
+        this->channel->cond_var.notify_one();
     }
-    T message = this->inner_state.msg_queue.pop();
-    this->channel_.inner_state.subscribers_read_lock.unlock();
-    return message;
 }
 
 template <typename T>
-Broadcast<T> Broadcast<T>::Subscriber::channel() const
+optional<T> Mpsc<T>::Receiver::receive()
 {
-    return this->channel_;
-}
-
-template <typename T>
-Broadcast<T>::Publisher::Publisher(Broadcast<T> channel):
-    channel_(channel)
-{
-}
-
-template <typename T>
-void Broadcast<T>::Publisher::publish(T message)
-{
-    lock_guard<WriteLock> subscribers_lock(
-        this->channel_.inner_state.subscribers_write_lock
-    );
-
-    for (auto it = this->channel_.inner_state.subscribers.before_begin();
-             it + 1 != this->channel_.inner_state.subscribers.end();
-             it++)
-    {
-        shared_ptr<SubscriberInner> subs_inner = (it + 1)->lock();
-        if (subs_inner.empty()) {
-            this->channel_.inner_state.subscribers.remove_after(it);
-        } else {
-            subs_inner.msg_queue.push(message);
-            subs_inner.has_message = true;
+    while (true) {
+        this->channel->lock->lock();
+        switch (this->channel->state_tag) {
+            case Mpsc::NEW_MESSAGE: {
+                T message = this->channel->queue.front();
+                this->channel->queue.pop();
+                if (this->channel->queue.empty()) {
+                    this->channel->state_tag = Mpsc::UP_TO_DATE;
+                }
+                this->channel->lock->unlock();
+                return make_optional(message);
+            }
+            case Mpsc::UP_TO_DATE:
+                this->channel->cond_var.wait(
+                    this->channel->lock,
+                    [this] () {
+                        return this->channel->state_tag != Mpsc::UP_TO_DATE;
+                    }
+                );
+                break;
+            case Mpsc::DISCONNECTED:
+                this->channel->lock->unlock();
+                return optional<T>();
         }
     }
-
-    this->channel_.inner_state.publish_cond_var.notify_all();
-}
-
-template <typename T>
-Broadcast<T> Broadcast<T>::Publisher::channel() const
-{
-    return this->channel_;
 }
 
 #endif

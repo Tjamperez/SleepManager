@@ -1,19 +1,41 @@
 #include "../include/interface.h"
+#include <thread>
 
-void interface_main(shared_ptr<WorkStationTable> participants)
+/*
+void interface_main(
+    shared_ptr<WorkStationTable> participants,
+    Broadcast<InterfaceMessage> channel)
 {
     bool exit = false;
+    Broadcast<InterfaceMessage>::Subscriber subscriber
+        = channel.make_subscriber();
+
+    thread input_thread([& channel] () {
+        Broadcast<InterfaceMessage>::Publisher publisher
+            = channel.make_publisher();
+        bool exit = false;
+        while (!exit) {
+            string input;
+            getline(cin, input);
+
+            transform(input.begin(), input.end(), input.begin(), ::toupper);
+
+            if (input == "EXIT") {
+                publisher.publish(INTERFACE_EXIT);
+                exit = true;
+            }
+        }
+    });
+    input_thread.detach();
 
     while (!exit) {
-        string input;
-        getline(cin, input);
-
-        transform(input.begin(), input.end(), input.begin(), ::toupper);
-
-        if (input == "EXIT") {
-            exit = true;
-        } else {
-            cout << "\033[2J\033[1;1H";
+        switch (subscriber.subscribe()) {
+            case INTERFACE_EXIT:
+                exit = true;
+                break;
+            case INTERFACE_REFRESH:
+                cout << "\033[2J\033[1;1H";
+                break;
         }
     }
 }
@@ -70,14 +92,9 @@ void Interface::terminal()
 
 void Interface::show_participants()
 {
-    /*
-    * Show participants
-    */
 };
 
 void Interface::show_manager()
 {
-    /*
-    * Show manager station
-    */
 };
+*/
