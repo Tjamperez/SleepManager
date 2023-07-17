@@ -96,10 +96,7 @@ void UdpSenderSocket::enable_broadcast(bool enable)
 
 UdpReceiverSocket::UdpReceiverSocket(uint16_t port): fd(-1)
 {
-    NodeAddresses addresses = NodeAddresses::load_host();
-    if (port == DISCOVERY_MANAGER_PORT) {
-        addresses.ip = IpAddress { 0, 0, 0, 0 };
-    }
+    IpAddress ip { 0, 0, 0, 0 };
     this->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (this->fd < 0) {
         throw IOException("receiver socket");
@@ -108,8 +105,8 @@ UdpReceiverSocket::UdpReceiverSocket(uint16_t port): fd(-1)
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_port = htons(port);
     copy(
-        addresses.ip.begin(),
-        addresses.ip.end(),
+        ip.begin(),
+        ip.end(),
         (uint8_t *) &sockaddr.sin_addr.s_addr
     );
     if (bind(this->fd, (struct sockaddr *) &sockaddr, sizeof(sockaddr)) < 0) {
