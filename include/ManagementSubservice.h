@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <net/ethernet.h>
 #include <netpacket/packet.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
 
 class ManagementSubservice
 {

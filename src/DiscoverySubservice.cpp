@@ -15,29 +15,39 @@ DiscoverySubservice::~DiscoverySubservice()
     //dtor
 }
 
-std::string getMACAddress(const std::string& ipAddress)
+std::string getMACAddress(int sockfd)
 {
-    struct ifreq ifr;
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0)
+    struct sockaddr_in sa{};
+    socklen_t saLen = sizeof(sa);
+    if (getsockname(sockfd, reinterpret_cast<struct sockaddr*>(&sa), &saLen) < 0)
+    {
+        perror("getsockname failed");
+        return "";
+    }
+
+    struct ifreq ifr{};
+    strncpy(ifr.ifr_name, inet_ntoa(sa.sin_addr), IFNAMSIZ - 1);
+
+    int sockfdTemp = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfdTemp < 0)
     {
         perror("socket creation failed");
         return "";
     }
 
-    std::strcpy(ifr.ifr_name, "eth0");
-    if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0)
+    if (ioctl(sockfdTemp, SIOCGIFHWADDR, &ifr) < 0)
     {
         perror("ioctl failed");
-        close(sockfd);
+        close(sockfdTemp);
         return "";
     }
 
-    close(sockfd);
+    close(sockfdTemp);
 
     const unsigned char* mac = reinterpret_cast<unsigned char*>(ifr.ifr_hwaddr.sa_data);
     char macAddress[18];
-    std::sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    std::sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     return macAddress;
 }
@@ -92,16 +102,20 @@ int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in cli
                     std::cerr << "recvfrom failed in listen for broadcasts\n";
                     return 1;
                 }
+            basePacket receivedPacket = WebServices::deserializePacket(buffer);
 
-                // Pega o IP do cliente
-                char client_ip[INET_ADDRSTRLEN];
-             inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+            if (receivedPacket.type != PTYPE_DISCOVERY)
+                continue;
 
-             //Pega o MAC do cliente (Linux apenas)
-             std::string client_mac = getMACAddress(client_ip);
+            // Pega o IP do cliente
+            char client_ip[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
 
-                std::cout << "Received broadcast from: " << client_ip << std::endl;
-             std::cout << "MAC address: " << client_mac << std::endl;
+            //Pega o MAC do cliente (Linux apenas)
+            std::string client_mac = receivedPacket._payload;
+
+            std::cout << "Received broadcast from: " << client_ip << std::endl;
+            std::cout << "MAC address: " << client_mac << std::endl;
 
                 //Responder
 
@@ -187,12 +201,14 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
     basePacket rtPacket;
     rtPacket.type = PTYPE_NULL;
 
+    basePacket p;
+    p.type = PTYPE_DISCOVERY;
+    strcpy(p._payload, getMACAddress(sockfd).c_str());
+
     // Espera o server responder
     while (!serverFound)
     {
         // Mandar pacote de broadcast
-        basePacket p;
-        p.type = PTYPE_DISCOVERY;
         if (WebServices::sendBroadcast(sockfd, server_addr, p))
         {
             // Esperar resposta do server

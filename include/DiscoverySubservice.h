@@ -10,6 +10,8 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/in.h>
+#include <netdb.h>
+#include <ifaddrs.h>
 #include <netinet/if_ether.h>
 #include "ManagementSubservice.h"
 #include "WebServices.h"

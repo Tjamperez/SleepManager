@@ -88,36 +88,25 @@ int ManagementSubservice::awakePC(unsigned long int index)
     std::string IP = network[index]->getIP();
     std::string MAC = network[index]->getMAC();
 
-    int sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)
     {
-        std::cerr << "Failed to create magic packet socket.\n";
+        std::cerr << "Failed to create UDP socket.\n";
         return 1;
     }
 
-    //Obter o indice da interface eth0
-    struct ifreq ifr{};
-    strcpy(ifr.ifr_name, "eth0");
-
-    if (ioctl(sockfd, SIOCGIFINDEX, &ifr) == -1)
+    struct sockaddr_in sa{};
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(9);
+    if (inet_pton(AF_INET, IP.c_str(), &(sa.sin_addr)) <= 0)
     {
-    std::cerr << "Failed to obtain interface index\n";
-    close(sockfd);
-    return 1;
+        std::cerr << "Invalid IP address format.\n";
+        close(sockfd);
+        return 1;
     }
-    int if_index = ifr.ifr_ifindex;
 
-    //Construir o quadro de ethernet
-    struct ether_header eth_header{};
-    eth_header.ether_type = htons(ETH_P_ALL);
-    memcpy(eth_header.ether_shost, getServerMac().c_str(), 6);
-    memcpy(eth_header.ether_dhost, MAC.c_str(), 6);
-
-    //Construir o packet completo
-    char packet[sizeof(struct ether_header) + 102];
-    memcpy(packet, &eth_header, sizeof(struct ether_header));
-
-
+    // Encher pacote com 6 * 0xFF e 6 * o MAC
+    char packet[102];
     memset(packet, 0xFF, 6);
 
     for (int i = 6; i < 102; i += 6)
@@ -125,13 +114,8 @@ int ManagementSubservice::awakePC(unsigned long int index)
         memcpy(packet + i, MAC.c_str(), 6);
     }
 
-    struct sockaddr_ll sa{};
-    sa.sll_family = AF_PACKET;
-    sa.sll_protocol = htons(ETH_P_ALL);
-    sa.sll_ifindex = if_index;
-
-    int sent_bytes = sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&sa, sizeof(sa));
-
+    // Mandar pacote mágico
+    ssize_t sent_bytes = sendto(sockfd, packet, sizeof(packet), 0, (struct sockaddr*)&sa, sizeof(sa));
     if (sent_bytes < 0)
     {
         std::cerr << "Failed to send Wake-on-LAN packet\n";
