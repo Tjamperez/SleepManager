@@ -40,6 +40,28 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     return p;
 }
 
+std::string getDefaultInterfaceName() {
+    struct ifaddrs* ifaddr = nullptr;
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return "";
+    }
+
+    std::string defaultInterfaceName = "";
+
+    for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET) {
+            if (ifa->ifa_flags & IFF_RUNNING) {
+                defaultInterfaceName = ifa->ifa_name;
+                break;
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    return defaultInterfaceName;
+}
+
 std::string getMACAddress()
 {
     struct ifreq ifr;
@@ -49,7 +71,7 @@ std::string getMACAddress()
         perror("socket creation failed");
         return "";
     }
-    std::strcpy(ifr.ifr_name, "eth0");
+    std::strcpy(ifr.ifr_name, getDefaultInterfaceName().c_str());
     if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0)
     {
         perror("ioctl failed");

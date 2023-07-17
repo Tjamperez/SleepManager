@@ -14,6 +14,7 @@
 #include "ClientPC.h"
 #include "WebServices.h"
 #include <stdint.h>
+#include <ifaddrs.h>
 #include <netdb.h>
 
 #define TIMEOUT_MS 5
