@@ -13,7 +13,7 @@ void manager_main(void)
 {
     signal(SIGINT, sigint_handler);
 
-    shared_ptr<ManagementService> management_service;
+    shared_ptr<ManagementService> management_service(new ManagementService());
     thread monitoring_thread(monitoring_main, management_service);
     monitoring_thread.detach();
     thread discovery_thread(discovery_main, management_service);

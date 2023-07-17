@@ -20,9 +20,6 @@ int main(int argc, char const *argv[])
 {
     int exit_code = 0;
 
-    NodeAddresses addrs = NodeAddresses::load_host();
-    cout << addrs.mac << endl;
-
     if (argc <= 1) {
         cout << "participant" << endl;
         participant_main();

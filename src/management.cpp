@@ -18,13 +18,16 @@ WorkStation::Status WorkStation::status()
     return this->status_;
 }
 
+ManagementService::ManagementService()
+{
+}
+
 void ManagementService::dispatch_event(ManagementEvent event)
 {
     for (function<void(ManagementEvent)> &handler : this->event_handlers) {
         handler(event);
     }
 }
-
 
 bool ManagementService::insert(shared_ptr<WorkStation> node)
 {

@@ -41,9 +41,9 @@ void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
 
 void manager_interface_main(shared_ptr<ManagementService> management_service)
 {
-    auto channel = Mpsc<ManagerIfaceMsg>::open();
-    Mpsc<ManagerIfaceMsg>::Sender sender = get<0>(channel);
-    Mpsc<ManagerIfaceMsg>::Receiver receiver = move(get<1>(channel));
+    auto channel = Mpsc<ManagerIfaceMsg>::Channel::open();
+    Mpsc<ManagerIfaceMsg>::Sender sender = move(channel.sender);
+    Mpsc<ManagerIfaceMsg>::Receiver receiver = move(channel.receiver);
 
     management_service->register_event_handler([& sender] (ManagementEvent event) {
         sender.send(MANAGER_IFACE_REFRESH);
@@ -95,7 +95,8 @@ static void render(vector<shared_ptr<WorkStation>> participants)
     string status_header = "Status";
     string hostname_header = "Hostname";
 
-    cout << "\033[2J\033[1;1H";
+    // clear screen
+    //cout << "\033[2J\033[1;1H";
     cout << mac_header;
     for (size_t i = mac_header.size(); i < mac_col_size; i++) {
         cout << " ";
@@ -167,7 +168,7 @@ static void handle_manager_input(
         if (getline(cin, input)) {
             trim_whitespace(input);
 
-            size_t whitespace_pos = input.find(' ');
+            size_t whitespace_pos = min(input.find(' '), input.size());
             string command = input.substr(0, whitespace_pos);
             transform(
                 command.begin(),
@@ -193,6 +194,8 @@ static void handle_manager_input(
             exit = true;
         }
     }
+
+    sender.send(MANAGER_IFACE_EXIT);
 }
 
 static void trim_whitespace(string &input)

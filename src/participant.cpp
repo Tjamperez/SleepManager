@@ -28,9 +28,9 @@ void participant_main(void)
     manager_ip = manager_addresses.ip;
     signal(SIGINT, sigint_handler);
 
-    auto channel_pair = Mpsc<ParticipantMsg>::open();
-    Mpsc<ParticipantMsg>::Sender sender = move(get<0>(channel_pair));
-    Mpsc<ParticipantMsg>::Receiver receiver = move(get<1>(channel_pair));
+    auto channel = Mpsc<ParticipantMsg>::Channel::open();
+    Mpsc<ParticipantMsg>::Sender sender = move(channel.sender);
+    Mpsc<ParticipantMsg>::Receiver receiver = move(channel.receiver);
 
     thread interface_thread(participant_interface_main, sender);
     interface_thread.detach();

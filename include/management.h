@@ -57,6 +57,7 @@ class ManagementService {
         vector<function<void(ManagementEvent)>> event_handlers;
         
     public:
+        ManagementService();
         ManagementService (const ManagementService& obj) = delete;
         ManagementService& operator=(const ManagementService& obj) = delete;
 

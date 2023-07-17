@@ -16,7 +16,7 @@ static atomic<uint64_t> global_seqn = 0;
 
 UdpSenderSocket::UdpSenderSocket(): fd(-1)
 {
-    socket(AF_INET, SOCK_DGRAM, 0);
+    this->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (this->fd < 0) {
         throw IOException("sender socket");
     }
@@ -97,7 +97,7 @@ void UdpSenderSocket::enable_broadcast(bool enable)
 UdpReceiverSocket::UdpReceiverSocket(uint16_t port): fd(-1)
 {
     NodeAddresses addresses = NodeAddresses::load_host();
-    socket(AF_INET, SOCK_DGRAM, 0);
+    this->fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (this->fd < 0) {
         throw IOException("receiver socket");
     }

@@ -18,6 +18,7 @@ class Mpsc {
     public:
         class Sender;
         class Receiver;
+        class Channel;
 
     private:
         enum StateTag {
@@ -26,15 +27,12 @@ class Mpsc {
             DISCONNECTED
         };
 
-        unique_lock<mutex> lock;
+        mutex lock;
         condition_variable cond_var;
         atomic<StateTag> state_tag;
         queue<T> messages;
 
         Mpsc();
-
-    public:
-        static tuple<Sender, Receiver> open();
 };
 
 template <typename T>
@@ -71,16 +69,22 @@ class Mpsc<T>::Receiver {
 };
 
 template <typename T>
+class Mpsc<T>::Channel {
+    public:
+        Mpsc<T>::Sender sender;
+        Mpsc<T>::Receiver receiver;
+
+    private:
+        Channel(shared_ptr<Mpsc<T>> inner_channel);
+
+    public:
+        static Mpsc<T>::Channel open();
+};
+
+template <typename T>
 Mpsc<T>::Mpsc():
     state_tag(Mpsc::UP_TO_DATE)
 {
-}
-
-template <typename T>
-tuple<typename Mpsc<T>::Sender, typename Mpsc<T>::Receiver> Mpsc<T>::open()
-{
-    shared_ptr<Mpsc> channel(new Mpsc());
-    return make_pair(Sender(channel), Receiver(channel));
 }
 
 template <typename T>
@@ -104,13 +108,16 @@ Mpsc<T>::Sender::Sender(Sender const&& obj):
 template <typename T>
 Mpsc<T>::Sender::~Sender()
 {
-    this->channel->state_tag = Mpsc::DISCONNECTED;
+    if (this->channel.use_count() <= 2) {
+        this->channel->state_tag = Mpsc::DISCONNECTED;
+        this->channel->cond_var.notify_one();
+    }
 }
 
 template <typename T>
 bool Mpsc<T>::Sender::send(T message) const
 {
-    lock_guard<unique_lock<mutex>> lock_guard(this->channel->lock);
+    unique_lock<mutex> lock_guard(this->channel->lock);
     this->channel->messages.push(move(message));
     if (this->channel->state_tag == Mpsc::DISCONNECTED) {
         return false;
@@ -135,17 +142,14 @@ Mpsc<T>::Receiver::Receiver(Receiver const&& obj):
 template <typename T>
 Mpsc<T>::Receiver::~Receiver()
 {
-    if (this->channel.use_count() <= 2) {
-        this->channel->state_tag = Mpsc::DISCONNECTED;
-        this->channel->cond_var.notify_one();
-    }
+    this->channel->state_tag = Mpsc::DISCONNECTED;
 }
 
 template <typename T>
 optional<T> Mpsc<T>::Receiver::receive()
 {
     while (true) {
-        this->channel->lock.lock();
+        unique_lock<mutex> lock_guard(this->channel->lock);
         switch (this->channel->state_tag) {
             case Mpsc::NEW_MESSAGE: {
                 T message = this->channel->messages.front();
@@ -153,22 +157,34 @@ optional<T> Mpsc<T>::Receiver::receive()
                 if (this->channel->messages.empty()) {
                     this->channel->state_tag = Mpsc::UP_TO_DATE;
                 }
-                this->channel->lock.unlock();
                 return make_optional(message);
             }
             case Mpsc::UP_TO_DATE:
                 this->channel->cond_var.wait(
-                    this->channel->lock,
+                    lock_guard,
                     [this] () {
                         return this->channel->state_tag != Mpsc::UP_TO_DATE;
                     }
                 );
                 break;
             case Mpsc::DISCONNECTED:
-                this->channel->lock.unlock();
                 return optional<T>();
         }
     }
+}
+
+template <typename T>
+Mpsc<T>::Channel::Channel(shared_ptr<Mpsc> inner_channel):
+    sender(inner_channel),
+    receiver(inner_channel)
+{
+}
+
+template <typename T>
+typename Mpsc<T>::Channel Mpsc<T>::Channel::open()
+{
+    shared_ptr<Mpsc> channel(new Mpsc());
+    return Mpsc<T>::Channel(channel);
 }
 
 #endif
