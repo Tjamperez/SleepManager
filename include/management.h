@@ -10,9 +10,38 @@
 #include "../include/address.h"
 #include "../include/management.h"
 
-class WorkStation;
-
 struct ManagementEvent;
+
+class ManagementService;
+
+/** A participant work station. */
+class WorkStation {
+    friend ManagementService;
+
+    public:
+        /** Status of the work station in the network. */
+        enum Status {
+            DISCONNECTED = -1,
+            ASLEEP = 0,
+            AWAKEN = 1
+        };
+
+    private:
+        NodeAddresses addresses_;
+        WorkStation::Status status_;
+        shared_mutex rw_status_lock;
+
+    public:
+        /** Creates a work station given its addresses and its initial status.
+         */
+        WorkStation(NodeAddresses addresses, WorkStation::Status status);
+
+        /** Gets the addresses of this work station. */
+        NodeAddresses addresses();
+
+        /** Gets the status  of this work station. */
+        WorkStation::Status status();
+};
 
 /** A concurrent table of work stations. */
 class ManagementService {
@@ -78,42 +107,21 @@ class ManagementService {
          */
         shared_ptr<WorkStation> get_by_hostname(string const& hostname);
 
+        /** Updates a work station's sleep status in response to the work
+         * station's own changes.
+         */
+        bool update_sleep_status(
+            MacAddress const& address,
+            WorkStation::Status status
+        );
+
         /**
          * Wakes up by hostname. Returns whether it actually woke up.
          */
         bool wakeup(string const& hostname);
 
         /** Creates a list of work stations. */
-        vector<shared_ptr<WorkStation>> to_list();
-};
-
-/** A participant work station. */
-class WorkStation {
-    friend ManagementService;
-
-    public:
-        /** Status of the work station in the network. */
-        enum Status {
-            DISCONNECTED = -1,
-            ASLEEP = 0,
-            AWAKEN = 1
-        };
-
-    private:
-        NodeAddresses addresses_;
-        WorkStation::Status status_;
-        shared_mutex rw_status_lock;
-
-    public:
-        /** Creates a work station given its addresses and its initial status.
-         */
-        WorkStation(NodeAddresses addresses, WorkStation::Status status);
-
-        /** Gets the addresses of this work station. */
-        NodeAddresses addresses();
-
-        /** Gets the status  of this work station. */
-        WorkStation::Status status();
+        vector<shared_ptr<WorkStation>> participant_list();
 };
 
 /** An event related to work station management. */

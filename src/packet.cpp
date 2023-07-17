@@ -56,7 +56,8 @@ bool PacketHeader::deserialize(PacketDeserializer& deserializer)
 }
 
 PacketBody::PacketBody():
-    type(PacketBody::DISCOVERY)
+    type(PacketBody::DISCOVERY),
+    sleep_status(WorkStation::AWAKEN)
 {
 }
 

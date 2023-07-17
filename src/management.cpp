@@ -130,18 +130,53 @@ shared_ptr<WorkStation> ManagementService::get_by_hostname(
     }
 }
 
-bool ManagementService::wakeup(string const& hostname)
+bool ManagementService::update_sleep_status(
+    MacAddress const& address,
+    WorkStation::Status status)
 {
-    shared_ptr<WorkStation> station = this->get_by_hostname(hostname);
-    lock_guard<shared_mutex> lock_guard(station->rw_status_lock);
-    if (station->status_ == WorkStation::ASLEEP) {
-        station->status_ = WorkStation::AWAKEN;
-        return true;
+    bool updated = false;
+    shared_ptr<WorkStation> station = this->get_by_mac_address(address);
+    if (bool(station)) {
+        {
+            lock_guard<shared_mutex> lock_guard(station->rw_status_lock);
+            if (station->status_ != status) {
+                station->status_ = status;
+                updated = true;
+            }
+        }
+        if (updated) {
+            struct ManagementEvent event;
+            event.type = ManagementEvent::CHANGED_STATUS;
+            event.work_station = station;
+            this->dispatch_event(event);
+        }
     }
-    return false;
+    return updated;
 }
 
-vector<shared_ptr<WorkStation>> ManagementService::to_list()
+bool ManagementService::wakeup(string const& hostname)
+{
+    bool wokeup = false;
+    shared_ptr<WorkStation> station = this->get_by_hostname(hostname);
+    if (bool(station)) {
+        {
+            lock_guard<shared_mutex> lock_guard(station->rw_status_lock);
+            if (station->status_ == WorkStation::ASLEEP) {
+                station->status_ = WorkStation::AWAKEN;
+                wokeup = true;
+            }
+        }
+        if (wokeup) {
+            struct ManagementEvent event;
+            event.type = ManagementEvent::CHANGED_STATUS;
+            event.work_station = station;
+            this->dispatch_event(event);
+        }
+    }
+    return wokeup;
+}
+
+vector<shared_ptr<WorkStation>> ManagementService::participant_list()
 {
     SharedLockGuard<shared_mutex> lock(this->rw_data_lock);
     vector<shared_ptr<WorkStation>> vec(this->mac_address_index.size());

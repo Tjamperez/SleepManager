@@ -8,10 +8,10 @@
 
 #define WOL_PARTICIPANT_PORT 7010
 #define WOL_MANAGER_PORT 7011
-#define DEFAULT_PORT 8020
+#define EXIT_PORT 8020
 #define DISCOVERY_PORT 9040
 
-#define DEFAULT_TRY_MS 100
+#define DEFAULT_TRY_US 1000
 
 using namespace std;
 
@@ -210,10 +210,20 @@ class ClientSocket {
                 /** Port to where the packet is sent. */
                 uint16_t dest_port() const;
 
-                /** Receives the response possibly repeating the request. */
+                /** Receives the response possibly repeating the request.
+                 */
                 Packet receive_response(
                     uint16_t port = DEFAULT_PORT,
-                    uint64_t try_wait_ms = DEFAULT_TRY_MS
+                    uint64_t try_wait_us = DEFAULT_TRY_US
+                );
+
+                /** Receives the response possibly repeating the request only
+                 * the given retry bound.
+                 */
+                optional<Packet> receive_bounded(
+                    uint64_t retry_bound,
+                    uint16_t port = DEFAULT_PORT,
+                    uint64_t try_wait_us = DEFAULT_TRY_US
                 );
         };
 

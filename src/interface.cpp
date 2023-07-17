@@ -52,7 +52,7 @@ void manager_interface_main(shared_ptr<ManagementService> management_service)
     thread input_thread(handle_manager_input, move(sender), management_service);
     input_thread.detach();
 
-    render(management_service->to_list());
+    render(management_service->participant_list());
 
     bool exit = false;
     while (!exit) {
@@ -63,7 +63,7 @@ void manager_interface_main(shared_ptr<ManagementService> management_service)
                     exit = true;
                     break;
                 case MANAGER_IFACE_REFRESH:
-                    render(management_service->to_list());
+                    render(management_service->participant_list());
                     break;
             }
         } else {

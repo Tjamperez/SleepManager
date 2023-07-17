@@ -392,7 +392,7 @@ uint16_t ClientSocket::Request::dest_port() const
 
 Packet ClientSocket::Request::receive_response(
     uint16_t port,
-    uint64_t try_wait_ms)
+    uint64_t try_wait_us)
 {
     bool done = false;
     UdpReceiverSocket socket(port);
@@ -403,10 +403,33 @@ Packet ClientSocket::Request::receive_response(
             done = true;
         } else {
             struct timespec timespec;
-            timespec.tv_sec = try_wait_ms / 1000;
-            timespec.tv_nsec = try_wait_ms * 1000000;
+            timespec.tv_sec = try_wait_us / 1000000;
+            timespec.tv_nsec = try_wait_us * 1000;
             nanosleep(&timespec, nullptr);
             this->send();
+        }
+    }
+    return received_packet;
+}
+
+optional<Packet> ClientSocket::Request::receive_bounded(
+    uint64_t retry_bound,
+    uint16_t port,
+    uint64_t try_wait_us)
+{
+    UdpReceiverSocket socket(port);
+    Packet received_packet;
+    while (retry_bound > 0) {
+        optional<bool> read = socket.try_receive(received_packet);
+        if (read.has_value() && read.value()) {
+            retry_bound = 0;
+        } else {
+            struct timespec timespec;
+            timespec.tv_sec = try_wait_us / 1000000;
+            timespec.tv_nsec = try_wait_us * 1000;
+            nanosleep(&timespec, nullptr);
+            this->send();
+            retry_bound--;
         }
     }
     return received_packet;

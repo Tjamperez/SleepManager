@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdint>
 #include "../include/address.h"
+#include "../include/management.h"
 
 using namespace std;
 
@@ -66,11 +67,17 @@ struct PacketBody {
     enum Type { 
         DISCOVERY = 0,
         EXIT = 1,
-        WOL = 2
+        WOL = 2,
+        SLEEP_STATUS = 3
     };
 
     /** Packet type. What is it for? What is being requested or responded? */
     Type type;
+
+    /** Sleep status of the workstation associated with this packet.
+     * Not defined unless RESPONSE of a SLEEP_STATUS.
+     */
+    WorkStation::Status sleep_status;
 
     PacketBody();
 

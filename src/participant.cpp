@@ -76,8 +76,8 @@ static void disconnect_to_manager(
 {
     PacketBody packet_body;
     packet_body.type = PacketBody::EXIT;
-    auto request = client_socket.request(packet_body, manager_ip);
-    request.receive_response();
+    auto request = client_socket.request(packet_body, manager_ip, EXIT_PORT);
+    request.receive_response(EXIT_PORT);
 }
 
 static void listen_wol()
