@@ -25,6 +25,7 @@ void participant_main(void)
     wol_thread.detach();
 
     NodeAddresses manager_addresses = connect_to_manager(client_socket);
+    cerr << "Connected to " << manager_addresses.ip << endl;
     manager_ip = manager_addresses.ip;
     signal(SIGINT, sigint_handler);
 
