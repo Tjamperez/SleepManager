@@ -1,20 +1,34 @@
-#ifndef INTERFACE_H_
-#define INTERFACE_H_
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
+#include "ManagementSubservice.h"
 #include <iostream>
-#include <list>
 #include <string>
 #include <vector>
-#include <algorithm>
-#include <memory>
-#include "../include/channel.h"
-#include "../include/management.h"
-#include "../include/participant.h"
+#include <sstream>
 
-using namespace std;
+enum interfaceCommand {CMD_UNKNOWN, CMD_LIST, CMD_AWAKE, CMD_QUIT};
 
-void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel);
+typedef struct _cmd
+{
+    int cmdType = CMD_UNKNOWN;
+    std::vector<std::string> argv;
+} icmd;
 
-void manager_interface_main(shared_ptr<ManagementService> management_service);
+class Interface
+{
+    public:
+        Interface();
+        virtual ~Interface();
 
-#endif
+        void startInterface();
+
+    protected:
+        void interfaceLoop();
+        icmd parseCommand(const std::string &commandStr);
+
+    private:
+        void listNetworkPCs();
+};
+
+#endif // INTERFACE_H
