@@ -36,10 +36,10 @@ void UdpSenderSocket::send(
     uint16_t dest_port)
 {
     struct sockaddr_in sockaddr;
-    socklen_t socklen;
+    socklen_t socklen = sizeof(sockaddr);
 
     sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port = dest_port;
+    sockaddr.sin_port = htons(dest_port);
     copy(
         dest_ip_address.cbegin(),
         dest_ip_address.cend(),
@@ -103,6 +103,7 @@ UdpReceiverSocket::UdpReceiverSocket(uint16_t port): fd(-1)
     }
     struct sockaddr_in sockaddr;
     sockaddr.sin_family = AF_INET;
+    sockaddr.sin_port = htons(port);
     copy(
         addresses.ip.begin(),
         addresses.ip.end(),
@@ -154,6 +155,9 @@ optional<size_t> UdpReceiverSocket::receive_with_block_type(
         }
         throw IOException("recvfrom");
     }
+
+    // unused
+    uint16_t src_port_ = ntohs(sockaddr.sin_port);
 
     copy_n(
         (uint8_t *) &sockaddr.sin_addr.s_addr,
@@ -382,6 +386,9 @@ ClientSocket::Request::Request(
 void ClientSocket::Request::send()
 {
     UdpSenderSocket socket;
+    if (this->dest_ip_address() == IpAddress { 255, 255, 255, 255 }) {
+        socket.enable_broadcast();
+    }
     socket.send(
         this->sent_packet,
         this->dest_ip_address(),
