@@ -12,11 +12,11 @@ void manager_main(void)
 {
     signal(SIGINT, sigint_handler);
 
-    shared_ptr<WorkStationTable> participants;
-    thread discovery_thread(discovery_main, participants);
+    shared_ptr<ManagementService> management_service;
+    thread discovery_thread(discovery_main, management_service);
     discovery_thread.detach();
 
-    manager_interface_main(participants);
+    manager_interface_main(management_service);
 }
 
 static void sigint_handler(int signal)

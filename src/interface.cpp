@@ -1,4 +1,6 @@
 #include "../include/interface.h"
+#include "../include/management.h"
+#include "../include/lock.h"
 #include <thread>
 #include <algorithm>
 
@@ -9,11 +11,11 @@ enum ManagerIfaceMsg {
 
 static void trim_whitespace(string &input);
 
-static void render(vector<shared_ptr<WorkStation>> participants);
+static void render(vector<shared_ptr<WorkStation>> management_service);
 
 static void handle_manager_input(
     Mpsc<ManagerIfaceMsg>::Sender sender,
-    shared_ptr<WorkStationTable> participants
+    shared_ptr<ManagementService> management_service
 );
 
 void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
@@ -37,20 +39,20 @@ void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel)
     }
 }
 
-void manager_interface_main(shared_ptr<WorkStationTable> participants)
+void manager_interface_main(shared_ptr<ManagementService> management_service)
 {
     auto channel = Mpsc<ManagerIfaceMsg>::open();
     Mpsc<ManagerIfaceMsg>::Sender sender = get<0>(channel);
     Mpsc<ManagerIfaceMsg>::Receiver receiver = move(get<1>(channel));
 
-    participants->register_event_handler([& sender] (WorkStationEvent event) {
+    management_service->register_event_handler([& sender] (ManagementEvent event) {
         sender.send(MANAGER_IFACE_REFRESH);
     });
 
-    thread input_thread(handle_manager_input, move(sender), participants);
+    thread input_thread(handle_manager_input, move(sender), management_service);
     input_thread.detach();
 
-    render(participants->to_list());
+    render(management_service->to_list());
 
     bool exit = false;
     while (!exit) {
@@ -61,7 +63,7 @@ void manager_interface_main(shared_ptr<WorkStationTable> participants)
                     exit = true;
                     break;
                 case MANAGER_IFACE_REFRESH:
-                    render(participants->to_list());
+                    render(management_service->to_list());
                     break;
             }
         } else {
@@ -157,7 +159,7 @@ static void render(vector<shared_ptr<WorkStation>> participants)
 
 static void handle_manager_input(
     Mpsc<ManagerIfaceMsg>::Sender sender,
-    shared_ptr<WorkStationTable> participants)
+    shared_ptr<ManagementService> management_service)
 {
     bool exit = false;
     while (!exit) {
@@ -179,7 +181,7 @@ static void handle_manager_input(
                 if (argument.size() == 0) {
                     cerr << "WAKEUP expects a hostname." << endl;
                 } else {
-                    bool woke_up = participants->wakeup(argument);
+                    bool woke_up = management_service->wakeup(argument);
                     if (!woke_up) {
                         cerr << "could not wake up " << argument << endl;
                     }

@@ -4,6 +4,6 @@
 #include <memory>
 #include "../include/work_station.h"
 
-void discovery_main(shared_ptr<WorkStationTable> work_station_table);
+void discovery_main(shared_ptr<ManagementService> management_service);
 
 #endif

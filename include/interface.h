@@ -15,6 +15,6 @@ using namespace std;
 
 void participant_interface_main(Mpsc<ParticipantMsg>::Sender channel);
 
-void manager_interface_main(shared_ptr<WorkStationTable> participants);
+void manager_interface_main(shared_ptr<ManagementService> management_service);
 
 #endif
