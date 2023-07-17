@@ -1,4 +1,4 @@
-#include "Interface.h"
+#include "interface.h"
 
 int Interface::runInterface = 1;
 

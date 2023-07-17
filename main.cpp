@@ -10,7 +10,7 @@
 #include <thread>
 
 
-#include "Interface.h"
+#include "interface.h"
 #include "DiscoverySubservice.h"
 #include "MonitoringSubservice.h"
 
