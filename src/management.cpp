@@ -1,6 +1,31 @@
 #include "../include/management.h"
 #include "../include/lock.h"
 
+WorkStation::WorkStation(NodeAddresses addresses, WorkStation::Status status):
+    addresses_(addresses),
+    status_(status)
+{
+}
+
+NodeAddresses WorkStation::addresses()
+{
+    return this->addresses_;
+}
+
+WorkStation::Status WorkStation::status()
+{
+    SharedLockGuard<shared_mutex> lock(this->rw_status_lock);
+    return this->status_;
+}
+
+void ManagementService::dispatch_event(ManagementEvent event)
+{
+    for (function<void(ManagementEvent)> &handler : this->event_handlers) {
+        handler(event);
+    }
+}
+
+
 bool ManagementService::insert(shared_ptr<WorkStation> node)
 {
     if (node->status() == WorkStation::DISCONNECTED) {

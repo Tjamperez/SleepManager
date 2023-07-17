@@ -2,7 +2,7 @@
 #define DISCOVERY_H_
 
 #include <memory>
-#include "../include/work_station.h"
+#include "../include/management.h"
 
 void discovery_main(shared_ptr<ManagementService> management_service);
 

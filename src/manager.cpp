@@ -1,4 +1,4 @@
-#include "../include/work_station.h"
+#include "../include/management.h"
 #include "../include/manager.h"
 #include "../include/discovery.h"
 #include "../include/socket.h"

@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include "../include/channel.h"
-#include "../include/work_station.h"
+#include "../include/management.h"
 #include "../include/participant.h"
 
 using namespace std;

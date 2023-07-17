@@ -8,7 +8,9 @@
 #include <memory>
 #include <functional>
 #include "../include/address.h"
-#include "../include/work_station.h"
+#include "../include/management.h"
+
+class WorkStation;
 
 struct ManagementEvent;
 
@@ -85,6 +87,35 @@ class ManagementService {
         vector<shared_ptr<WorkStation>> to_list();
 };
 
+/** A participant work station. */
+class WorkStation {
+    friend ManagementService;
+
+    public:
+        /** Status of the work station in the network. */
+        enum Status {
+            DISCONNECTED = -1,
+            ASLEEP = 0,
+            AWAKEN = 1
+        };
+
+    private:
+        NodeAddresses addresses_;
+        WorkStation::Status status_;
+        shared_mutex rw_status_lock;
+
+    public:
+        /** Creates a work station given its addresses and its initial status.
+         */
+        WorkStation(NodeAddresses addresses, WorkStation::Status status);
+
+        /** Gets the addresses of this work station. */
+        NodeAddresses addresses();
+
+        /** Gets the status  of this work station. */
+        WorkStation::Status status();
+};
+
 /** An event related to work station management. */
 struct ManagementEvent {
     /** Event type's tag. */
@@ -104,7 +135,6 @@ struct ManagementEvent {
     /** The work station affected. Defined for every type. */
     shared_ptr<WorkStation> work_station;
 };
-
 
 template<typename F>
 void ManagementService::register_event_handler(F event_handler)
