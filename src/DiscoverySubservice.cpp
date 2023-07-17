@@ -75,7 +75,7 @@ int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in cli
             inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
 
             //Pega o MAC do cliente (Linux apenas)
-            std::string client_mac = receivedPacket._payload;
+            std::string client_mac(receivedPacket._payload);
 
             std::cout << "Received broadcast from: " << client_ip << std::endl;
             std::cout << "MAC address: " << client_mac << std::endl;
@@ -171,6 +171,7 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
     while (!serverFound)
     {
         // Mandar pacote de broadcast
+        if (WebServices::sendBroadcast(sockfd, server_addr, p))
         {
             // Esperar resposta do server
             rtPacket = WebServices::waitForResponse(sockfd, server_addr, 2);

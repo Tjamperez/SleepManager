@@ -14,9 +14,10 @@
 #include "ClientPC.h"
 #include "WebServices.h"
 #include <stdint.h>
+#include <netdb.h>
 
 #define TIMEOUT_MS 5
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 512
 #define PACKET_SIZE 132
 
 enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_SSR, PTYPE_SSR_RESP, PTYPE_SERVER_SHUTDOWN};

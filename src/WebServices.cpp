@@ -40,47 +40,36 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     return p;
 }
 
-std::string getMACAddress(int sockfd)
+std::string getMACAddress()
 {
-    struct sockaddr_in sa{};
-    socklen_t saLen = sizeof(sa);
-    if (getsockname(sockfd, reinterpret_cast<struct sockaddr*>(&sa), &saLen) < 0)
-    {
-        perror("getsockname failed");
-        return "";
-    }
-
-    struct ifreq ifr{};
-    strncpy(ifr.ifr_name, inet_ntoa(sa.sin_addr), IFNAMSIZ - 1);
-
-    int sockfdTemp = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfdTemp < 0)
-    {
+    struct ifreq ifr;
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0)
+     {
         perror("socket creation failed");
         return "";
     }
-
-    if (ioctl(sockfdTemp, SIOCGIFHWADDR, &ifr) < 0)
+    std::strcpy(ifr.ifr_name, "eth0");
+    if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0)
     {
         perror("ioctl failed");
-        close(sockfdTemp);
         return "";
     }
-
-    close(sockfdTemp);
+    close(sockfd);
 
     const unsigned char* mac = reinterpret_cast<unsigned char*>(ifr.ifr_hwaddr.sa_data);
     char macAddress[18];
-    std::sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X",
-                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+    std::sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     return macAddress;
 }
 
 bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p)
 {
+    strcpy(p._payload, getMACAddress().c_str());
+    //std::cout << "MAC: " << p._payload << "\n";
     char* broadcastMessage = WebServices::serializePacket(p);
-    strcpy(p._payload, getMACAddress(sockfd).c_str());
     ssize_t num_bytes = sendto(sockfd, broadcastMessage, PACKET_SIZE, 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (num_bytes < 0)
     {
