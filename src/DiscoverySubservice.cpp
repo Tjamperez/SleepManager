@@ -161,6 +161,8 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
         perror("socket creation failed");
         return 1;
     }
+    int broadcastEnable=1;
+    int ret=setsockopt(bcast_sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
 
     // Fazer o socket n�o bloquear a thread
     int flags = fcntl(sockfd, F_GETFL, 0);

@@ -40,7 +40,7 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     return p;
 }
 
-bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in server_addr, basePacket p)
+bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p)
 {
     char* broadcastMessage = WebServices::serializePacket(p);
     ssize_t num_bytes = sendto(sockfd, broadcastMessage, PACKET_SIZE, 0, (struct sockaddr *)&server_addr, sizeof(server_addr));

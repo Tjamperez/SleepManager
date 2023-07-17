@@ -36,7 +36,7 @@ class WebServices
         WebServices();
         virtual ~WebServices();
 
-    static bool sendBroadcast(int sockfd, const struct sockaddr_in server_addr, basePacket p);
+    static bool sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p);
     static basePacket waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutMs);
     static bool initializeSocket(int &sockfd, const struct sockaddr_in &server_addr);
     static char* serializePacket(basePacket p);
