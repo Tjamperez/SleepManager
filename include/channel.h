@@ -13,11 +13,15 @@
 
 using namespace std;
 
+/** Multiple-Producers, Single-Consumer (MPSC). */
 template <typename T>
 class Mpsc {
     public:
+        /** A handler to a producer/sender, which can be copied. */
         class Sender;
+        /** A handler to a consumer/receiver, which cannot be copied. */
         class Receiver;
+        /** A handle to both. */
         class Channel;
 
     private:
@@ -48,6 +52,9 @@ class Mpsc<T>::Sender {
         Sender(Sender const&& obj);
         ~Sender();
 
+        /** Sends a message and returns whether the producer is connected to
+         * receive it.
+         */
         bool send(T message) const;
 };
 
@@ -65,6 +72,10 @@ class Mpsc<T>::Receiver {
         Receiver(Receiver const&& obj);
         ~Receiver();
 
+        /** Receives a message from a producer, blocking until a message is
+         * available. If there is no producer active, then returns an empty
+         * optional.
+         */
         optional<T> receive();
 };
 
@@ -78,6 +89,7 @@ class Mpsc<T>::Channel {
         Channel(shared_ptr<Mpsc<T>> inner_channel);
 
     public:
+        /** Opens this channel. Use std::move with the Receiver. */
         static Mpsc<T>::Channel open();
 };
 
