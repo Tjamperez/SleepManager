@@ -45,6 +45,7 @@ int main(int argc, char* argv[])
 
         while (true)
         {
+            std::cout << "Running client.\n";
             if (serverState == -1)
             {
                 serverState = clientDiscovery.InitializeClient(server_addr);
