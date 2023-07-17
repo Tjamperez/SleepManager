@@ -15,7 +15,7 @@ static void discovery_response(
         WorkStation::AWAKEN
     ));
     management_service->insert(work_station);
-    request.respond(DEFAULT_PORT);
+    request.respond(DISCOVERY_PORT);
 }
 
 void discovery_main(shared_ptr<ManagementService> management_service)

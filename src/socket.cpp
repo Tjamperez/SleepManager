@@ -253,6 +253,15 @@ ServerSocket::Request ServerSocket::receive()
     return Request(packet);
 }
 
+optional<ServerSocket::Request> ServerSocket::try_receive()
+{
+    Packet packet;
+    if (this->udp.try_receive(packet)) {
+        return make_optional(Request(packet));
+    }
+    return optional<ServerSocket::Request>();
+}
+
 void ServerSocket::handle_wol(IpAddress dest_ip_address, uint16_t dest_port)
 {
     MagicPacket request_packet;

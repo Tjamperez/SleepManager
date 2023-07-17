@@ -63,7 +63,7 @@ static NodeAddresses connect_to_manager(ClientSocket& client_socket)
         IpAddress { 255, 255, 255, 255 },
         DISCOVERY_PORT 
     );
-    Packet response = request.receive_response();
+    Packet response = request.receive_response(DISCOVERY_PORT);
 
     client_socket.enable_broadcast(false);
 
@@ -85,7 +85,7 @@ static void listen_wol()
     ServerSocket socket(WOL_PARTICIPANT_PORT);
     socket.enable_broadcast();
     while (true) {
-        socket.handle_wol(IpAddress { 255, 255, 255, 255 });
+        socket.handle_wol(IpAddress { 255, 255, 255, 255 }, WOL_PARTICIPANT_PORT);
     }
 }
 

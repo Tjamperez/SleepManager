@@ -10,6 +10,7 @@
 #define WOL_MANAGER_PORT 7011
 #define EXIT_PORT 8020
 #define DISCOVERY_PORT 9040
+#define SLEEP_STATUS_PORT 10030
 
 #define DEFAULT_TRY_US 1000
 
@@ -33,21 +34,21 @@ class UdpSenderSocket {
             uint8_t const *buffer,
             size_t length,
             IpAddress dest_ip_address,
-            uint16_t dest_port = WOL_PARTICIPANT_PORT
+            uint16_t dest_port
         );
 
         /** Sends a serialized packet string. */
         void send(
             string message,
             IpAddress dest_ip_address,
-            uint16_t dest_port = DEFAULT_PORT
+            uint16_t dest_port
         );
 
         /** Sends a packet automatically serializing it. */
         void send(
             Packet const& packet,
             IpAddress dest_ip_address,
-            uint16_t dest_port = DEFAULT_PORT
+            uint16_t dest_port
         );
 
         /** Enables or disables broadcast given the boolean argument. 
@@ -148,14 +149,14 @@ class ServerSocket {
                 /** Responds to the request in the given port using the same
                  * packet body.
                  */
-                void respond(uint16_t port = DEFAULT_PORT);
+                void respond(uint16_t port);
 
                 /** Responds to the request in the given port using the given
                  * packet body.
                  */
                 void respond(
                     PacketBody packet_body,
-                    uint16_t port = DEFAULT_PORT
+                    uint16_t port
                 );
         };
 
@@ -171,10 +172,13 @@ class ServerSocket {
         /** Receives the next request. */
         Request receive();
 
+        /** Receives the next request without blocking. */
+        optional<Request> try_receive();
+
         /** Receives a Wake-On-LAN as the next request and sends a response. */
         void handle_wol(
             IpAddress dest_ip_address,
-            uint16_t dest_port = WOL_MANAGER_PORT
+            uint16_t dest_port
         );
 
         /** Enables or disables broadcast given the boolean argument. 
@@ -213,7 +217,7 @@ class ClientSocket {
                 /** Receives the response possibly repeating the request.
                  */
                 Packet receive_response(
-                    uint16_t port = DEFAULT_PORT,
+                    uint16_t port, 
                     uint64_t try_wait_us = DEFAULT_TRY_US
                 );
 
@@ -222,7 +226,7 @@ class ClientSocket {
                  */
                 optional<Packet> receive_bounded(
                     uint64_t retry_bound,
-                    uint16_t port = DEFAULT_PORT,
+                    uint16_t port,
                     uint64_t try_wait_us = DEFAULT_TRY_US
                 );
         };
@@ -235,14 +239,14 @@ class ClientSocket {
         Request request(
             PacketBody packet_body,
             IpAddress dest_ip_address,
-            uint16_t dest_port = DEFAULT_PORT
+            uint16_t dest_port
         );
 
         /** Performs a Wake-On-LAN request to the given MAC and IP and ports. */
         Request wol_request(
             MacAddress dest_mac_address,
             IpAddress dest_ip_address,
-            uint16_t dest_port = DEFAULT_PORT
+            uint16_t dest_port
         );
 
         /** Enables or disables broadcast given the boolean argument. 
