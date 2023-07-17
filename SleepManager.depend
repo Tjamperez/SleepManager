@@ -1,0 +1,34 @@
+# depslib dependency file v1.0
+1689523656 source:c:\users\victf\documents\code\sleepmanager\src\discoverysubsurvice.cpp
+	"DiscoverySubsurvice.h"
+
+1689523759 c:\users\victf\documents\code\sleepmanager\include\discoverysubsurvice.h
+
+1689523751 source:c:\users\victf\documents\code\sleepmanager\src\webservices.cpp
+	"WebServices.h"
+
+1689524637 c:\users\victf\documents\code\sleepmanager\include\webservices.h
+
+1689542514 source:c:\users\victf\documents\code\sleepmanager\src\clientpc.cpp
+	"ClientPC.h"
+
+1689546263 c:\users\victf\documents\code\sleepmanager\include\clientpc.h
+	<vector>
+	<string>
+	<mutex>
+
+1689539706 source:c:\users\victf\documents\code\sleepmanager\src\managementsubservice.cpp
+	"ManagementSubservice.h"
+
+1689539706 c:\users\victf\documents\code\sleepmanager\include\managementsubservice.h
+
+1689542673 source:c:\users\victf\documents\code\sleepmanager\src\monitoringsubservice.cpp
+	"MonitoringSubservice.h"
+
+1689542666 c:\users\victf\documents\code\sleepmanager\include\monitoringsubservice.h
+
+1689544277 source:c:\users\victf\documents\code\sleepmanager\src\threadmanager.cpp
+	"ThreadManager.hpp"
+
+1689544278 c:\users\victf\documents\code\sleepmanager\include\threadmanager.hpp
+

@@ -1,21 +1,35 @@
+# Makefile
+
+CC = g++
+CFLAGS = -std=c++17 -Wall -Iinclude -pthread
+
 SRC_DIR = src
 OBJ_DIR = obj
-INCLD_DIR = include
-PROG_PATH = sleep_server
+INCLUDE_DIR = include
 
-INCLUDE_FILES = $(wildcard $(INCLD_DIR)/*.h)
-OBJ_FILES = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(wildcard $(SRC_DIR)/*.cpp))
+SERVER_SRC = $(wildcard $(SRC_DIR)/*.cpp)
+SERVER_OBJ = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SERVER_SRC))
 
-LINK_FLAGS =
-CPP = g++
-C_FLAGS = -g -pthread -std=c++17
+MAIN_SRC = main.cpp
+MAIN_OBJ = $(OBJ_DIR)/main.o
 
-$(PROG_PATH): $(OBJ_FILES)
-	$(CPP) -o $@ $^ $(C_FLAGS) $(LINK_FLAGS)
+EXECUTABLE = SleepManager
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INCLUDE_FILES)
+.PHONY: all clean
+
+all: $(EXECUTABLE)
+
+$(EXECUTABLE): $(SERVER_OBJ) $(MAIN_OBJ)
+	$(CC) $(CFLAGS) -o $@ $^
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c -o $@ $<
+
+$(OBJ_DIR)/main.o: $(MAIN_SRC) | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -c -o $@ $<
+
+$(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
-	$(CPP) -o $@ -c $< $(C_FLAGS)
 
 clean:
-	rm -rf $(PROG_PATH) $(OBJ_DIR)
+	rm -rf $(OBJ_DIR) $(EXECUTABLE)
