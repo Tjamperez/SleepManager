@@ -242,7 +242,7 @@ MacAddress parse_mac_address(string const& text)
     istringstream input_stream(text);
     MacAddress address;
     input_stream >> address;
-    if (input_stream.peek() != input_stream.eof()) {
+    if (!input_stream.eof()) {
         throw InvalidAddressException(string("expected end of input"));
     }
     return address;
@@ -253,7 +253,7 @@ IpAddress parse_ip_address(string const& text)
     istringstream input_stream(text);
     IpAddress address;
     input_stream >> address;
-    if (input_stream.peek() != input_stream.eof()) {
+    if (!input_stream.eof()) {
         throw InvalidAddressException(string("expected end of input"));
     }
     return address;
