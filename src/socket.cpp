@@ -233,7 +233,7 @@ optional<bool> UdpReceiverSocket::try_receive(Packet& packet)
     optional<string> message = this->try_receive();
     if (message.has_value()) {
         PacketDeserializer deserializer(message.value());
-        return packet.deserialize(deserializer);
+        return make_optional(packet.deserialize(deserializer));
     }
     return optional<bool>();
 }

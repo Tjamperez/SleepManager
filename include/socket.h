@@ -13,7 +13,7 @@
 #define DISCOVERY_MANAGER_PORT 9041
 #define SLEEP_STATUS_PORT 10030
 
-#define DEFAULT_TRY_US 1000
+#define DEFAULT_TRY_US 100000
 
 using namespace std;
 
