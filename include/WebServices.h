@@ -19,7 +19,7 @@
 #define BUFFER_SIZE 1024
 #define PACKET_SIZE 132
 
-enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_SSR, PTYPE_SSR_RESP};
+enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_SSR, PTYPE_SSR_RESP, PTYPE_SERVER_SHUTDOWN};
 extern std::vector<std::string> packetTypesNames;
 
  typedef struct __packet{

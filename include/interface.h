@@ -2,6 +2,8 @@
 #define INTERFACE_H
 
 #include "ManagementSubservice.h"
+#include "MonitoringSubservice.h"
+#include "DiscoverySubservice.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,6 +27,7 @@ class Interface
 
     protected:
         void interfaceLoop();
+        static int runInterface;
         icmd parseCommand(const std::string &commandStr);
 
     private:

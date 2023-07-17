@@ -26,23 +26,38 @@ int main(int argc, char* argv[])
             std::thread monitoringThread(&MonitoringSubservice::runMonitoringServer, &serverMonitor);
             Interface interface;
             interface.startInterface();
+            discoveryThread.join();
+            monitoringThread.join();
             return 0;
         }
         else
         {
             std::cerr << "Argument: \"manager\" for manager or nothing for client.\n";
+            return 0;
         }
     }
     else if (argc == 1)
     {
+        int serverState = -1;
         DiscoverySubservice clientDiscovery;
-        struct sockaddr_in server_addr;
-        if (clientDiscovery.InitializeClient(server_addr))
-            return -1;
-
         MonitoringSubservice clientMonitor;
-        std::cout << "Starting monitoring.\n";
-        clientMonitor.runMonitoringClient(server_addr);
+        struct sockaddr_in server_addr;
+
+        while (true)
+        {
+            if (serverState == -1)
+            {
+                serverState = clientDiscovery.InitializeClient(server_addr);
+                if (serverState == 1)
+                    return -1;
+            }
+            else
+            {
+                std::cout << "Starting monitoring.\n";
+                clientMonitor.runMonitoringClient(server_addr);
+                serverState = -1;
+            }
+        }
     }
     else
     {

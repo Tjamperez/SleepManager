@@ -3,6 +3,8 @@
 
 #define SERVER_PORT 15000
 
+int DiscoverySubservice::runDiscovery = 1;
+
 DiscoverySubservice::DiscoverySubservice()
 {
     //ctor
@@ -40,46 +42,87 @@ std::string getMACAddress(const std::string& ipAddress)
     return macAddress;
 }
 
-int listenForBroadcasts(int &sockfd, struct sockaddr_in client_addr,  socklen_t &client_len, char* buffer, size_t buffSize)
+int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in client_addr,  socklen_t &client_len, char* buffer, size_t buffSize)
 {
+    runDiscovery = 1;
     basePacket sendPack;
     sendPack.type = PTYPE_DISCOVERY_ACK;
-    while (true)
+
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
+
+    fd_set readSet;
+    FD_ZERO(&readSet);
+    FD_SET(sockfd, &readSet);
+
+    timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 5000;
+
+    while (runDiscovery)
     {
         memset(buffer, 0, buffSize);
-        ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&client_addr, &client_len);
+        /*ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&client_addr, &client_len);
         if (num_bytes < 0)
         {
             std::cerr << "recvfrom failed in listen for broadcasts\n";
             return 1;
-        }
+        }*/
 
-        // Pega o IP do cliente
-        char client_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-
-        //Pega o MAC do cliente (Linux apenas)
-        std::string client_mac = getMACAddress(client_ip);
-
-        std::cout << "Received broadcast from: " << client_ip << std::endl;
-        std::cout << "MAC address: " << client_mac << std::endl;
-
-        //Responder
-
-        char* response = WebServices::serializePacket(sendPack);
-
-        std::cout <<"Sent: " << packetTypesNames[WebServices::deserializePacket(response).type] << "\n";
-
-        ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
-        if (sent_bytes < 0)
+        fd_set tempSet = readSet;
+        int result = select(sockfd + 1, &tempSet, nullptr, nullptr, &timeout);
+        if (result == -1) 
         {
-            std::cerr << "sendto failed\n";
+            std::cerr << "select failed\n";
             return 1;
         }
+        else if (result == 0) 
+        {
+            // Timeout
+            continue;
+        }
+        else 
+        {
+            // Dados prontos
+            if (FD_ISSET(sockfd, &tempSet)) 
+            {
+                ssize_t num_bytes = recvfrom(sockfd, buffer, buffSize - 1, 0, (struct sockaddr*)&client_addr, &client_len);
+                if (num_bytes < 0) 
+                {
+                    std::cerr << "recvfrom failed in listen for broadcasts\n";
+                    return 1;
+                }
 
-        ManagementSubservice::AddPCToNetwork(client_ip, client_mac);
+                // Pega o IP do cliente
+                char client_ip[INET_ADDRSTRLEN];
+             inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
 
-        std::cout << "Response sent to the client." << std::endl;
+             //Pega o MAC do cliente (Linux apenas)
+             std::string client_mac = getMACAddress(client_ip);
+
+                std::cout << "Received broadcast from: " << client_ip << std::endl;
+             std::cout << "MAC address: " << client_mac << std::endl;
+
+                //Responder
+
+             char* response = WebServices::serializePacket(sendPack);
+
+             std::cout <<"Sent: " << packetTypesNames[WebServices::deserializePacket(response).type] << "\n";
+
+             ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
+             if (sent_bytes < 0)
+             {
+                  std::cerr << "sendto failed\n";
+                 return 1;
+             }
+
+            ManagementSubservice::AddPCToNetwork(client_ip, client_mac);
+
+            std::cout << "Response sent to the client." << std::endl;
+
+
+            }
+        }
 
     }
     return 0;
@@ -102,10 +145,9 @@ int DiscoverySubservice::InitializeServer()
         if (!listenForBroadcasts(sockfd, client_addr, client_len, buffer, sizeof(buffer)))
         {
             close(sockfd);
-            return 0;
         }
     }
-    std::cerr << "Returning form discovery SS\n";
+    std::cerr << "Returning form discovery server\n";
     return 1;
 }
 
@@ -120,7 +162,7 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
         return 1;
     }
 
-    // Fazer o socket não bloquear a thread
+    // Fazer o socket nï¿½o bloquear a thread
     int flags = fcntl(sockfd, F_GETFL, 0);
     if (flags < 0)
     {
@@ -158,7 +200,7 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
                 serverFound = true;
             }
         }
-        sleep(2);
+        usleep(2000);
     }
 
     // Close the socket
@@ -169,5 +211,8 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
 
 
 
-
+void DiscoverySubservice::shutDown()
+{
+    runDiscovery = 0;
+}
 

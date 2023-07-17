@@ -1,7 +1,7 @@
 # Makefile
 
 CC = g++
-CFLAGS = -std=c++17 -Wall -Iinclude -pthread
+CFLAGS = -std=c++17 -Wall -Iinclude -pthread -g
 
 SRC_DIR = src
 OBJ_DIR = obj

@@ -1,6 +1,6 @@
 #include "WebServices.h"
 
-std::vector<std::string> packetTypesNames = {"PTYPE_NULL", "PTYPE_DISCOVERY", "PTYPE_DISCOVERY_ACK", "PTYPE_SSR", "PTYPE_SSR_RESP"};
+std::vector<std::string> packetTypesNames = {"PTYPE_NULL", "PTYPE_DISCOVERY", "PTYPE_DISCOVERY_ACK", "PTYPE_SSR", "PTYPE_SSR_RESP", "PTYPE_SERVER_SHUTDOWN"};
 
 WebServices::WebServices()
 {
@@ -100,7 +100,7 @@ basePacket WebServices::waitForResponse(int sockfd, struct sockaddr_in server_ad
     }
     else
     {
-        // Erro na seleção
+        // Erro na seleï¿½ï¿½o
         std::cerr << "select failed\n";
         return response;
     }

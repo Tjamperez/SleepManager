@@ -12,8 +12,10 @@ class MonitoringSubservice
 
         int runMonitoringServer();
         int runMonitoringClient(struct sockaddr_in server_addr);
+        static void shutDown();
 
     protected:
+        static int runMonitor;
 
     private:
 };

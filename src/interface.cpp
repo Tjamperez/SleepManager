@@ -1,5 +1,7 @@
 #include "Interface.h"
 
+int Interface::runInterface = 1;
+
 Interface::Interface()
 {
     //ctor
@@ -38,7 +40,8 @@ void Interface::listNetworkPCs()
 
 void Interface::interfaceLoop()
 {
-    while (true)
+    runInterface = 1;
+    while (runInterface)
     {
         std::string commandStr;
         std::getline(std::cin, commandStr);
@@ -55,6 +58,12 @@ void Interface::interfaceLoop()
             break;
         case CMD_AWAKE:
             ManagementSubservice::awakePC((unsigned long int)std::stoi(command.argv[0]));
+            break;
+        case CMD_QUIT:
+
+            MonitoringSubservice::shutDown();
+            DiscoverySubservice::shutDown();
+            runInterface = 0;
             break;
         }
     }
@@ -101,6 +110,17 @@ icmd Interface::parseCommand(const std::string &commandStr)
         }
         else
             std::cout << "Awake needs the client index specified as an argument.\n";
+    }
+    else if (cmdTks[0] == "quit")
+    {
+        if (cmdTks.size() == 1)
+        {
+            command.cmdType = CMD_QUIT;
+        }
+        else
+        {
+            std::cout << "Quit doesn't take any arguments.\n";
+        }
     }
     return command;
 }

@@ -23,10 +23,13 @@ class DiscoverySubservice
         int InitializeServer();
         int InitializeClient(struct sockaddr_in &server_addr);
 
+        static void shutDown();
 
 
 
     protected:
+        static int runDiscovery;
+        int listenForBroadcasts(int &sockfd, struct sockaddr_in client_addr,  socklen_t &client_len, char* buffer, size_t buffSize);
 
     private:
 };
