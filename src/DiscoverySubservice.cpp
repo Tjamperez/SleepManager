@@ -203,7 +203,7 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
         usleep(2000);
     }
 
-    // Close the socket
+    // Fechar o socket
     close(sockfd);
 
     return 0;

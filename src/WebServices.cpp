@@ -42,8 +42,8 @@ basePacket WebServices::deserializePacket(char* serializedData) {
 
 bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in server_addr, basePacket p)
 {
-    const char* broadcastMessage = WebServices::serializePacket(p);
-    ssize_t num_bytes = sendto(sockfd, broadcastMessage, strlen(broadcastMessage), 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    char* broadcastMessage = WebServices::serializePacket(p);
+    ssize_t num_bytes = sendto(sockfd, broadcastMessage, PACKET_SIZE, 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (num_bytes < 0)
     {
         std::cerr << "sendto failed\n";
