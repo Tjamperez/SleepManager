@@ -61,9 +61,9 @@ static NodeAddresses connect_to_manager(ClientSocket& client_socket)
     auto request = client_socket.request(
         packet_body,
         IpAddress { 255, 255, 255, 255 },
-        DISCOVERY_PORT 
+        DISCOVERY_MANAGER_PORT 
     );
-    Packet response = request.receive_response(DISCOVERY_PORT);
+    Packet response = request.receive_response(DISCOVERY_PARTICIPANT_PORT);
 
     client_socket.enable_broadcast(false);
 

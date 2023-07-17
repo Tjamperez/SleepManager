@@ -15,12 +15,12 @@ static void discovery_response(
         WorkStation::AWAKEN
     ));
     management_service->insert(work_station);
-    request.respond(DISCOVERY_PORT);
+    request.respond(DISCOVERY_PARTICIPANT_PORT);
 }
 
 void discovery_main(shared_ptr<ManagementService> management_service)
 {
-    ServerSocket socket(DISCOVERY_PORT);
+    ServerSocket socket(DISCOVERY_MANAGER_PORT);
     socket.enable_broadcast();
 
     while (true) {
