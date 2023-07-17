@@ -9,6 +9,7 @@
 #include <limits.h>
 #include <algorithm>
 #include <ifaddrs.h>
+#include <fcntl.h>
 
 #define STR_BUF_SIZE 0xffff
 
@@ -129,13 +130,17 @@ optional<size_t> UdpReceiverSocket::receive_with_block_type(
     UdpReceiverSocket::BlockType block_type,
     IpAddress& src_address)
 {
-    int flags;
+    int flags = fcntl(this->fd, F_GETFL, 0);
+    if (flags < 0) {
+        throw IOException("fcntl getfl");
+    }
     switch (block_type) {
         case UdpReceiverSocket::BLOCKING:
-            flags = 0;
             break;
         case UdpReceiverSocket::NON_BLOCKING:
-            flags = MSG_DONTWAIT;
+            if (fcntl(this->fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+                throw IOException("fcntl setfl O_NONBLOCK");
+            }
             break;
     }
 
@@ -145,7 +150,7 @@ optional<size_t> UdpReceiverSocket::receive_with_block_type(
         this->fd,
         buffer,
         capacity,
-        flags,
+        0,
         (struct sockaddr *) &sockaddr,
         &addrlen
     );
@@ -154,6 +159,16 @@ optional<size_t> UdpReceiverSocket::receive_with_block_type(
             return optional<size_t>();
         }
         throw IOException("recvfrom");
+    }
+
+    switch (block_type) {
+        case UdpReceiverSocket::BLOCKING:
+            break;
+        case UdpReceiverSocket::NON_BLOCKING:
+            if (fcntl(this->fd, F_SETFL, flags) < 0) {
+                throw IOException("fcntl unset O_NONBLOCK");
+            }
+            break;
     }
 
     // unused
