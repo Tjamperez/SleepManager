@@ -15,43 +15,6 @@ DiscoverySubservice::~DiscoverySubservice()
     //dtor
 }
 
-std::string getMACAddress(int sockfd)
-{
-    struct sockaddr_in sa{};
-    socklen_t saLen = sizeof(sa);
-    if (getsockname(sockfd, reinterpret_cast<struct sockaddr*>(&sa), &saLen) < 0)
-    {
-        perror("getsockname failed");
-        return "";
-    }
-
-    struct ifreq ifr{};
-    strncpy(ifr.ifr_name, inet_ntoa(sa.sin_addr), IFNAMSIZ - 1);
-
-    int sockfdTemp = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfdTemp < 0)
-    {
-        perror("socket creation failed");
-        return "";
-    }
-
-    if (ioctl(sockfdTemp, SIOCGIFHWADDR, &ifr) < 0)
-    {
-        perror("ioctl failed");
-        close(sockfdTemp);
-        return "";
-    }
-
-    close(sockfdTemp);
-
-    const unsigned char* mac = reinterpret_cast<unsigned char*>(ifr.ifr_hwaddr.sa_data);
-    char macAddress[18];
-    std::sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X",
-                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
-    return macAddress;
-}
-
 int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in client_addr,  socklen_t &client_len, char* buffer, size_t buffSize)
 {
     runDiscovery = 1;
@@ -203,13 +166,11 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
 
     basePacket p;
     p.type = PTYPE_DISCOVERY;
-    strcpy(p._payload, getMACAddress(sockfd).c_str());
 
     // Espera o server responder
     while (!serverFound)
     {
         // Mandar pacote de broadcast
-        if (WebServices::sendBroadcast(sockfd, server_addr, p))
         {
             // Esperar resposta do server
             rtPacket = WebServices::waitForResponse(sockfd, server_addr, 2);
