@@ -119,7 +119,8 @@ std::string getMACAddress()
     mac_address.pop_back();
 
     if (!found_mac) {
-        cerr << "couldn't get mac!\n";
+        //cerr << "couldn't get mac!\n";
+        return "ERR";
     }
     return mac_address;
 }

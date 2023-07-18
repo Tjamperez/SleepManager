@@ -28,6 +28,14 @@ int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in cli
     FD_ZERO(&readSet);
     FD_SET(sockfd, &readSet);
 
+    int enableBroadcast = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &enableBroadcast, sizeof(enableBroadcast)) < 0) 
+    {
+        perror("setsockopt failed");
+        close(sockfd);
+        return 1;
+    }
+
     timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 5000;
@@ -80,24 +88,22 @@ int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in cli
             std::cout << "Received broadcast from: " << client_ip << std::endl;
             std::cout << "MAC address: " << client_mac << std::endl;
 
-                //Responder
+            //Responder
 
-             char* response = WebServices::serializePacket(sendPack);
+            char* response = WebServices::serializePacket(sendPack);
 
-             std::cout <<"Sent: " << packetTypesNames[WebServices::deserializePacket(response).type] << "\n";
+            std::cout <<"Sent: " << packetTypesNames[WebServices::deserializePacket(response).type] << "\n";
 
-             ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
-             if (sent_bytes < 0)
-             {
+            ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
+            if (sent_bytes < 0)
+            {
                   std::cerr << "sendto failed\n";
                  return 1;
-             }
+            }
 
-            ManagementSubservice::AddPCToNetwork(client_ip, client_mac);
-
-            std::cout << "Response sent to the client." << std::endl;
-
-
+            if (ManagementSubservice::AddPCToNetwork(client_ip, client_mac));
+                std::cout << "Response sent to the client." << std::endl;
+            
             }
         }
 
