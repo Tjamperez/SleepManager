@@ -16,6 +16,10 @@
 #include <stdint.h>
 #include <ifaddrs.h>
 #include <netdb.h>
+#include <array>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
 
 #define TIMEOUT_MS 5
 #define BUFFER_SIZE 512

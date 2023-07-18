@@ -40,29 +40,7 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     return p;
 }
 
-std::string getDefaultInterfaceName() {
-    struct ifaddrs* ifaddr = nullptr;
-    if (getifaddrs(&ifaddr) == -1) {
-        perror("getifaddrs");
-        return "";
-    }
-
-    std::string defaultInterfaceName = "";
-
-    for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr != nullptr && ifa->ifa_addr->sa_family == AF_INET) {
-            if (ifa->ifa_flags & IFF_RUNNING) {
-                defaultInterfaceName = ifa->ifa_name;
-                break;
-            }
-        }
-    }
-
-    freeifaddrs(ifaddr);
-    return defaultInterfaceName;
-}
-
-std::string getMACAddress()
+/*std::string getMACAddress(std::string interface)
 {
     struct ifreq ifr;
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -71,7 +49,7 @@ std::string getMACAddress()
         perror("socket creation failed");
         return "";
     }
-    std::strcpy(ifr.ifr_name, getDefaultInterfaceName().c_str());
+    std::strcpy(ifr.ifr_name, interface.c_str());
     if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0)
     {
         perror("ioctl failed");
@@ -85,7 +63,67 @@ std::string getMACAddress()
     std::sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     return macAddress;
+}*/
+
+using IpAddress = std::array<uint8_t, 4>;
+
+std::string getMACAddress()
+{
+    using namespace std;
+    array<uint8_t, 6> mac;
+    struct ifaddrs *ifaddr_list;
+    getifaddrs(&ifaddr_list);
+    struct ifaddrs *ifaddr_curr = ifaddr_list;
+    bool found_mac = false;
+    while (ifaddr_curr != nullptr && !found_mac) {
+        int fd = socket(AF_INET, SOCK_DGRAM, 0);
+        struct ifreq ifreq;
+        if (fd < 0) {
+            perror("socket for finding MAC");
+        }
+        strcpy(ifreq.ifr_name, ifaddr_curr->ifa_name);
+        if (ioctl(fd, SIOCGIFADDR, &ifreq) >= 0) {
+            struct sockaddr_in *inet_addr =
+                (struct sockaddr_in *) &ifreq.ifr_addr;
+            IpAddress if_ip_addr;
+            copy_n(
+                (uint8_t *) &inet_addr->sin_addr.s_addr,
+                4,
+                if_ip_addr.begin()
+            );
+            if (true /*if_ip_addr == this->ip*/) {
+                if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
+                    perror("get MAC address");
+                }
+                copy_n(
+                    (uint8_t *) &ifreq.ifr_hwaddr.sa_data,
+                    6,
+                    mac.begin()
+                );
+                found_mac = true;
+            }
+        }
+        ifaddr_curr = ifaddr_curr->ifa_next;
+    }
+    freeifaddrs(ifaddr_list);
+
+    ostringstream oss;
+    oss << hex << uppercase;
+    for (const auto& byte : mac)
+    {
+        oss << setw(2) << setfill('0') << static_cast<int>(byte) << ":";
+    }
+
+    string mac_address = oss.str();
+    // Remove the trailing ':' character
+    mac_address.pop_back();
+
+    if (!found_mac) {
+        cerr << "couldn't get mac!\n";
+    }
+    return mac_address;
 }
+
 
 bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p)
 {
