@@ -12,9 +12,12 @@ Interface::~Interface()
     //dtor
 }
 
-void Interface::startInterface()
+void Interface::startInterface(bool server)
 {
-    interfaceLoop();
+    if (server)
+        interfaceLoop();
+    else
+        clientInterfaceLoop();
 }
 
 void Interface::listNetworkPCs()
@@ -60,11 +63,30 @@ void Interface::interfaceLoop()
             ManagementSubservice::awakePC((unsigned long int)std::stoi(command.argv[0]));
             break;
         case CMD_QUIT:
-
-            MonitoringSubservice::shutDown();
             DiscoverySubservice::shutDown();
+            MonitoringSubservice::shutDown();
             runInterface = 0;
             break;
+        }
+    }
+}
+
+void Interface::clientInterfaceLoop()
+{
+    runInterface = 1;
+    while (runInterface)
+    {
+        std::string commandStr = "";
+        std::getline(std::cin, commandStr);
+
+        if (commandStr == "quit")
+        {
+            runInterface = 0;
+            break;
+        }
+        else
+        {
+            std::cout << "Valid command: \"quit\"\n";
         }
     }
 }

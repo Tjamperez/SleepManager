@@ -23,10 +23,11 @@ class Interface
         Interface();
         virtual ~Interface();
 
-        void startInterface();
+        void startInterface(bool server = true);
 
     protected:
         void interfaceLoop();
+        void clientInterfaceLoop();
         static int runInterface;
         icmd parseCommand(const std::string &commandStr);
 

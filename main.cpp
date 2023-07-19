@@ -14,6 +14,32 @@
 #include "DiscoverySubservice.h"
 #include "MonitoringSubservice.h"
 
+bool clRun = true;
+
+int clientThread()
+{
+    DiscoverySubservice clientDiscovery;
+    MonitoringSubservice clientMonitor;
+    struct sockaddr_in server_addr;
+    int serverState = -1;
+    while (clRun)
+    {
+        if (serverState == -1)
+        {
+            std::cout << "Running client discovery.\n";
+            serverState = clientDiscovery.InitializeClient(server_addr);
+            if (serverState == 1)
+                return -1;
+        }
+        else
+        {
+            std::cout << "Starting monitoring.\n";
+            clientMonitor.runMonitoringClient(server_addr);
+            serverState = -1;
+        }
+     }
+}
+
 int main(int argc, char* argv[])
 {
     if (argc == 2)
@@ -38,27 +64,14 @@ int main(int argc, char* argv[])
     }
     else if (argc == 1)
     {
-        int serverState = -1;
-        DiscoverySubservice clientDiscovery;
-        MonitoringSubservice clientMonitor;
-        struct sockaddr_in server_addr;
-
-        while (true)
-        {
-            std::cout << "Running client.\n";
-            if (serverState == -1)
-            {
-                serverState = clientDiscovery.InitializeClient(server_addr);
-                if (serverState == 1)
-                    return -1;
-            }
-            else
-            {
-                std::cout << "Starting monitoring.\n";
-                clientMonitor.runMonitoringClient(server_addr);
-                serverState = -1;
-            }
-        }
+        std::thread loopThread(clientThread);
+        Interface interface;
+        interface.startInterface(false);
+        clRun = false;
+        MonitoringSubservice::shutDown();
+        DiscoverySubservice::shutDown();
+        loopThread.join();
+        
     }
     else
     {

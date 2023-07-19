@@ -136,6 +136,7 @@ int DiscoverySubservice::InitializeServer()
 
 int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
 {
+    runDiscovery = 1;
     int sockfd;
     //socklen_t server_len = sizeof(server_addr);
 
@@ -174,7 +175,7 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
     p.type = PTYPE_DISCOVERY;
 
     // Espera o server responder
-    while (!serverFound)
+    while (!serverFound && runDiscovery)
     {
         // Mandar pacote de broadcast
         if (WebServices::sendBroadcast(sockfd, server_addr, p))
