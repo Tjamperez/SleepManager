@@ -43,7 +43,7 @@ void Interface::interfaceLoop()
     runInterface = 1;
     while (runInterface)
     {
-        std::string commandStr;
+        std::string commandStr = "";
         std::getline(std::cin, commandStr);
 
         icmd command = parseCommand(commandStr);
@@ -73,6 +73,9 @@ icmd Interface::parseCommand(const std::string &commandStr)
 {
     icmd command;
     command.cmdType = CMD_UNKNOWN;
+
+    if (commandStr == "")
+        return command;
 
     std::stringstream cmdStream(commandStr);
     std::string currentTk;
