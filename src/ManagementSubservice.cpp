@@ -85,8 +85,15 @@ std::string getServerMac()
 
 int ManagementSubservice::awakePC(unsigned long int index)
 {
+    networkMutex.lock();
+    if (index >= network.size())
+    {
+        std::cerr << "Index out of bounds!\n";
+        return 1;
+    }
     std::string IP = network[index]->getIP();
     std::string MAC = network[index]->getMAC();
+    networkMutex.unlock();
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)

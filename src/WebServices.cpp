@@ -40,7 +40,7 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     return p;
 }
 
-/*std::string getMACAddress(std::string interface)
+std::string getMACAddress(std::string interface)
 {
     struct ifreq ifr;
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -63,9 +63,9 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     std::sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     return macAddress;
-}*/
+}
 
-using IpAddress = std::array<uint8_t, 4>;
+/*using IpAddress = std::array<uint8_t, 4>;
 
 std::string getMACAddress()
 {
@@ -91,7 +91,7 @@ std::string getMACAddress()
                 4,
                 if_ip_addr.begin()
             );
-            if (true /*if_ip_addr == this->ip*/) {
+            if (true || if_ip_addr == this->ip) {
                 if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
                     perror("get MAC address");
                 }
@@ -123,12 +123,12 @@ std::string getMACAddress()
         return "ERR";
     }
     return mac_address;
-}
+}*/
 
 
 bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p)
 {
-    strcpy(p._payload, getMACAddress().c_str());
+    strcpy(p._payload, getMACAddress("eth0").c_str());
     //std::cout << "MAC: " << p._payload << "\n";
     char* broadcastMessage = WebServices::serializePacket(p);
     ssize_t num_bytes = sendto(sockfd, broadcastMessage, PACKET_SIZE, 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
