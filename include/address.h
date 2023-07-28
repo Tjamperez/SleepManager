@@ -20,14 +20,8 @@ class NodeAddresses {
         MacAddress mac;
         IpAddress ip;
         string hostname;
-    private:
-        void load_hostname();
-        void load_ip();
-        void load_mac();
     public:
         NodeAddresses();
-        /** Loads address data of host running this process */
-        static NodeAddresses load_host();
 };
 
 /** Exception thrown when parsing an invalid address */
@@ -60,6 +54,10 @@ class NoMacAddressFoundException: public exception {
         IpAddress ip_address() const;
         virtual char const *what() const noexcept;
 };
+
+string get_global_interface_name();
+
+void set_global_interface_name(string interface_name);
 
 /** Reads and parses a MAC address from an input stream (including strings) */
 istream& operator >>(istream& input_stream, MacAddress& address);

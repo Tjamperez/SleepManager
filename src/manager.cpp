@@ -1,3 +1,4 @@
+#include "../include/address.h"
 #include "../include/management.h"
 #include "../include/manager.h"
 #include "../include/discovery.h"
@@ -9,7 +10,7 @@
 
 static void sigint_handler(int signal);
 
-void manager_main(void)
+void manager_main()
 {
     signal(SIGINT, sigint_handler);
 

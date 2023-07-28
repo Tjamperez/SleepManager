@@ -8,12 +8,15 @@
 #include <net/if.h>
 #include <limits.h>
 #include <algorithm>
+#include <cstring>
 #include <ifaddrs.h>
 #include <fcntl.h>
 
 #define STR_BUF_SIZE 0xffff
 
 static atomic<uint64_t> global_seqn = 0;
+
+static NodeAddresses host_addresses(int socket, string const& interface);
 
 UdpSenderSocket::UdpSenderSocket(): fd(-1)
 {
@@ -95,6 +98,11 @@ void UdpSenderSocket::enable_broadcast(bool enable)
     }
 }
 
+NodeAddresses UdpSenderSocket::load_host_addresses(string const& interface)
+{
+    return host_addresses(this->fd, interface);
+}
+
 UdpReceiverSocket::UdpReceiverSocket(uint16_t port): fd(-1)
 {
     IpAddress ip { 0, 0, 0, 0 };
@@ -113,6 +121,11 @@ UdpReceiverSocket::UdpReceiverSocket(uint16_t port): fd(-1)
     if (bind(this->fd, (struct sockaddr *) &sockaddr, sizeof(sockaddr)) < 0) {
         throw IOException("receiver bind");
     }
+}
+
+NodeAddresses UdpReceiverSocket::load_host_addresses(string const& interface)
+{
+    return host_addresses(this->fd, interface);
 }
 
 UdpReceiverSocket::~UdpReceiverSocket()
@@ -261,7 +274,14 @@ void UdpReceiverSocket::enable_broadcast(bool enable)
     }
 }
 
-ServerSocket::ServerSocket(uint16_t port): udp(port)
+ServerSocket::ServerSocket(uint16_t port):
+    ServerSocket(get_global_interface_name(), port)
+{
+}
+
+ServerSocket::ServerSocket(string interface_name_, uint16_t port):
+    udp(port),
+    interface_name(interface_name_)
 {
 }
 
@@ -269,14 +289,14 @@ ServerSocket::Request ServerSocket::receive()
 {
     Packet packet;
     while (!this->udp.receive(packet)) { }
-    return Request(packet);
+    return Request(packet, this->interface_name);
 }
 
 optional<ServerSocket::Request> ServerSocket::try_receive()
 {
     Packet packet;
     if (this->udp.try_receive(packet)) {
-        return make_optional(Request(packet));
+        return make_optional(Request(packet, this->interface_name));
     }
     return optional<ServerSocket::Request>();
 }
@@ -292,7 +312,7 @@ void ServerSocket::handle_wol(IpAddress dest_ip_address, uint16_t dest_port)
     Packet response_packet;
     response_packet.header.seqn = global_seqn++;
     response_packet.header.direction = PacketHeader::RESPONSE;
-    response_packet.header.sender_addresses = NodeAddresses::load_host();
+    response_packet.header.sender_addresses = this->udp.load_host_addresses(this->interface_name);
     struct timespec timespec;
     clock_gettime(CLOCK_REALTIME, &timespec);
     response_packet.header.timestamp =
@@ -307,8 +327,9 @@ void ServerSocket::enable_broadcast(bool enable)
     this->udp.enable_broadcast(enable);
 }
 
-ServerSocket::Request::Request(Packet received_packet__):
-    received_packet_(received_packet__)
+ServerSocket::Request::Request(Packet received_packet__, string interface_name_):
+    received_packet_(received_packet__),
+    interface_name(interface_name_)
 {
 }
 
@@ -324,21 +345,31 @@ void ServerSocket::Request::respond(uint16_t port)
 
 void ServerSocket::Request::respond(PacketBody packet_body, uint16_t port)
 {
+    UdpSenderSocket sender_socket;
     Packet response_packet;
     response_packet.header = this->received_packet_.header;
     response_packet.header.direction = PacketHeader::RESPONSE;
-    response_packet.header.sender_addresses = NodeAddresses::load_host();
+    response_packet.header.sender_addresses = sender_socket.load_host_addresses(this->interface_name);
     struct timespec timespec;
     clock_gettime(CLOCK_REALTIME, &timespec);
     response_packet.header.timestamp =
         timespec.tv_nsec / 1000 + timespec.tv_sec * 1000000;
     response_packet.body = packet_body;
-    UdpSenderSocket sender_socket;
     sender_socket.send(
         response_packet,
         this->received_packet_.header.sender_addresses.ip,
         port
     );
+}
+
+ClientSocket::ClientSocket():
+    ClientSocket(get_global_interface_name())
+{
+}
+
+ClientSocket::ClientSocket(string interface_name_):
+    interface_name(interface_name_)
+{
 }
 
 ClientSocket::Request ClientSocket::request(
@@ -347,7 +378,7 @@ ClientSocket::Request ClientSocket::request(
     uint16_t dest_port)
 {
     Packet packet;
-    packet.header.sender_addresses = NodeAddresses::load_host();
+    packet.header.sender_addresses = this->udp.load_host_addresses(this->interface_name);
     packet.header.seqn = global_seqn++;
     struct timespec timespec;
     clock_gettime(CLOCK_REALTIME, &timespec);
@@ -464,4 +495,32 @@ optional<Packet> ClientSocket::Request::receive_bounded(
         }
     }
     return received_packet;
+}
+
+static NodeAddresses host_addresses(int socket, string const& interface)
+{
+    NodeAddresses addresses;
+
+    char hostname_c[HOST_NAME_MAX + 1] = {0};
+    if (gethostname(hostname_c, HOST_NAME_MAX + 1) < 0) {
+        throw IOException("gethostname");
+    }
+    addresses.hostname = hostname_c;
+
+    struct ifreq ifreq;
+    strcpy(ifreq.ifr_name, interface.c_str());
+    if (ioctl(socket, SIOCGIFHWADDR, &ifreq) < 0) {
+        throw IOException("SIOCGIFHWADDR");
+    }
+    copy_n((uint8_t *) &ifreq.ifr_hwaddr.sa_data, 6, addresses.mac.begin());
+    if (ioctl(socket, SIOCGIFADDR, &ifreq) < 0) {
+        throw IOException("SIOCGIFADDR");
+    }
+    copy_n(
+        (uint8_t *) &((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr,
+        4,
+        addresses.ip.begin()
+    );
+
+    return addresses;
 }

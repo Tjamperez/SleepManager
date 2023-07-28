@@ -56,6 +56,8 @@ class UdpSenderSocket {
          * If no argument is given, then broadcast is enabled.
          */
         void enable_broadcast(bool enable = true);
+
+        NodeAddresses load_host_addresses(string const& interface);
 };
 
 /** A raw UDP socket used only for receiving packets. Do not use directly. */
@@ -128,6 +130,8 @@ class UdpReceiverSocket {
          * If no argument is given, then broadcast is enabled.
          */
         void enable_broadcast(bool enable = true);
+
+        NodeAddresses load_host_addresses(string const& interface);
 };
 
 /** A socket used as a server. Use this to passively listen to requests and then
@@ -141,7 +145,9 @@ class ServerSocket {
 
             private:
                 Packet received_packet_;
-                Request(Packet received_packet__);
+                string interface_name;
+
+                Request(Packet received_packet__, string interface_name_);
 
             public:
                 /** Returns the received packet. */
@@ -164,10 +170,13 @@ class ServerSocket {
     private:
         UdpReceiverSocket udp;
 
+        string interface_name;
+
     public:
         /** Creates a server socket listening to the given port in the host's IP
          * address.
          */
+        ServerSocket(string interface_name_, uint16_t port);
         ServerSocket(uint16_t port);
 
         /** Receives the next request. */
@@ -235,7 +244,12 @@ class ClientSocket {
     private:
         UdpSenderSocket udp;
 
+        string interface_name;
+
     public:
+        ClientSocket(string interface_name_);
+        ClientSocket();
+
         /** Performs a request to the given IP and port. */
         Request request(
             PacketBody packet_body,

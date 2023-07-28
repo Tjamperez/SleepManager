@@ -17,7 +17,7 @@ static void disconnect_to_manager(
 
 static void listen_wol();
 
-void participant_main(void)
+void participant_main()
 {
     ClientSocket client_socket;
     
