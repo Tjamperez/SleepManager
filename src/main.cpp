@@ -42,7 +42,7 @@ int main(int argc, char const *argv[])
             cout << "participant" << endl;
             participant_main();
             break;
-        case Arguments::ḾANAGER:
+        case Arguments::MANAGER:
             cout << "manager" << endl;
             manager_main();
             break;
