@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cstring>
 #include <ifaddrs.h>
-#include <fcntl.h>
+#include <poll.h>
 
 #define STR_BUF_SIZE 0xffff
 
@@ -137,24 +137,53 @@ UdpReceiverSocket::~UdpReceiverSocket()
 
 thread_local IpAddress UdpReceiverSocket::dummy_ip;
 
-optional<size_t> UdpReceiverSocket::receive_with_block_type(
+size_t UdpReceiverSocket::receive(
     uint8_t *buffer,
     size_t capacity,
-    UdpReceiverSocket::BlockType block_type,
     IpAddress& src_address)
 {
-    int flags = fcntl(this->fd, F_GETFL, 0);
-    if (flags < 0) {
-        throw IOException("fcntl getfl");
+    struct sockaddr_in sockaddr;
+    socklen_t addrlen = sizeof(sockaddr);
+    ssize_t res = recvfrom(
+        this->fd,
+        buffer,
+        capacity,
+        0,
+        (struct sockaddr *) &sockaddr,
+        &addrlen
+    );
+    if (res < 0) {
+        throw IOException("recvfrom");
     }
-    switch (block_type) {
-        case UdpReceiverSocket::BLOCKING:
-            break;
-        case UdpReceiverSocket::NON_BLOCKING:
-            if (fcntl(this->fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-                throw IOException("fcntl setfl O_NONBLOCK");
-            }
-            break;
+
+    // unused
+    uint16_t src_port_ = ntohs(sockaddr.sin_port);
+
+    copy_n(
+        (uint8_t *) &sockaddr.sin_addr.s_addr,
+        src_address.size(),
+        src_address.begin()
+    );
+
+    return res;
+}
+
+optional<size_t> UdpReceiverSocket::receive_timeout(
+    uint8_t *buffer,
+    size_t capacity,
+    uint64_t wait_ms,
+    IpAddress& src_address)
+{
+    struct pollfd fds[1];
+    fds[0].fd = this->fd;
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
+    if (poll(fds, sizeof(fds) / sizeof(fds[0]), wait_ms) < 0) {
+        throw IOException("poll");
+    }
+
+    if ((fds[0].revents & POLLIN) == 0) {
+        return optional<size_t>();
     }
 
     struct sockaddr_in sockaddr;
@@ -167,22 +196,6 @@ optional<size_t> UdpReceiverSocket::receive_with_block_type(
         (struct sockaddr *) &sockaddr,
         &addrlen
     );
-    if (res < 0) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            return optional<size_t>();
-        }
-        throw IOException("recvfrom");
-    }
-
-    switch (block_type) {
-        case UdpReceiverSocket::BLOCKING:
-            break;
-        case UdpReceiverSocket::NON_BLOCKING:
-            if (fcntl(this->fd, F_SETFL, flags) < 0) {
-                throw IOException("fcntl unset O_NONBLOCK");
-            }
-            break;
-    }
 
     // unused
     uint16_t src_port_ = ntohs(sockaddr.sin_port);
@@ -196,32 +209,6 @@ optional<size_t> UdpReceiverSocket::receive_with_block_type(
     return make_optional(res);
 }
 
-size_t UdpReceiverSocket::receive(
-    uint8_t *buffer,
-    size_t capacity,
-    IpAddress& src_address)
-{
-    return this->receive_with_block_type(
-        buffer,
-        capacity,
-        UdpReceiverSocket::BLOCKING,
-        src_address
-    ).value();
-}
-
-optional<size_t> UdpReceiverSocket::try_receive(
-    uint8_t *buffer,
-    size_t capacity,
-    IpAddress& src_address)
-{
-    return this->receive_with_block_type(
-        buffer,
-        capacity,
-        UdpReceiverSocket::NON_BLOCKING,
-        src_address
-    );
-}
-
 string UdpReceiverSocket::receive(IpAddress& src_address)
 {
     string message(STR_BUF_SIZE, '\0');
@@ -231,12 +218,13 @@ string UdpReceiverSocket::receive(IpAddress& src_address)
     return message;
 }
 
-optional<string> UdpReceiverSocket::try_receive(IpAddress& src_address)
+optional<string> UdpReceiverSocket::receive_timeout(uint64_t wait_ms, IpAddress& src_address)
 {
     string message(STR_BUF_SIZE, '\0');
-    optional<size_t> read = this->try_receive(
+    optional<size_t> read = this->receive_timeout(
         (uint8_t *) message.data(),
         STR_BUF_SIZE,
+        wait_ms,
         src_address
     );
     if (read.has_value()) {
@@ -253,9 +241,9 @@ bool UdpReceiverSocket::receive(Packet& packet)
     return packet.deserialize(deserializer);
 }
 
-optional<bool> UdpReceiverSocket::try_receive(Packet& packet)
+optional<bool> UdpReceiverSocket::receive_timeout(Packet& packet, uint64_t wait_ms)
 {
-    optional<string> message = this->try_receive();
+    optional<string> message = this->receive_timeout(wait_ms);
     if (message.has_value()) {
         PacketDeserializer deserializer(message.value());
         return make_optional(packet.deserialize(deserializer));
@@ -292,10 +280,10 @@ ServerSocket::Request ServerSocket::receive()
     return Request(packet, this->interface_name);
 }
 
-optional<ServerSocket::Request> ServerSocket::try_receive()
+optional<ServerSocket::Request> ServerSocket::receive_timeout(uint64_t wait_ms)
 {
     Packet packet;
-    if (this->udp.try_receive(packet)) {
+    if (this->udp.receive_timeout(packet, wait_ms)) {
         return make_optional(Request(packet, this->interface_name));
     }
     return optional<ServerSocket::Request>();
@@ -454,20 +442,16 @@ uint16_t ClientSocket::Request::dest_port() const
 
 Packet ClientSocket::Request::receive_response(
     uint16_t port,
-    uint64_t try_wait_us)
+    uint64_t try_wait_ms)
 {
     bool done = false;
     UdpReceiverSocket socket(port);
     Packet received_packet;
     while (!done) {
-        optional<bool> read = socket.try_receive(received_packet);
+        optional<bool> read = socket.receive_timeout(received_packet, try_wait_ms);
         if (read.has_value() && read.value()) {
             done = true;
         } else {
-            struct timespec timespec;
-            timespec.tv_sec = try_wait_us / 1000000;
-            timespec.tv_nsec = try_wait_us * 1000;
-            nanosleep(&timespec, nullptr);
             this->send();
         }
     }
@@ -477,19 +461,15 @@ Packet ClientSocket::Request::receive_response(
 optional<Packet> ClientSocket::Request::receive_bounded(
     uint64_t retry_bound,
     uint16_t port,
-    uint64_t try_wait_us)
+    uint64_t try_wait_ms)
 {
     UdpReceiverSocket socket(port);
     Packet received_packet;
     while (retry_bound > 0) {
-        optional<bool> read = socket.try_receive(received_packet);
+        optional<bool> read = socket.receive_timeout(received_packet, try_wait_ms);
         if (read.has_value() && read.value()) {
             retry_bound = 0;
         } else {
-            struct timespec timespec;
-            timespec.tv_sec = try_wait_us / 1000000;
-            timespec.tv_nsec = try_wait_us * 1000;
-            nanosleep(&timespec, nullptr);
             this->send();
             retry_bound--;
         }

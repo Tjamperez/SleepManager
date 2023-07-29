@@ -2,6 +2,7 @@
 #include "../include/socket.h"
 
 #define MONITORING_TICK_US 50000 
+#define MONITORING_REQ_MS 10
 #define MAX_RETRIES 3
 
 void monitoring_main(shared_ptr<ManagementService> management_service)
@@ -37,7 +38,7 @@ void monitoring_main(shared_ptr<ManagementService> management_service)
 
         bool exit = false;
         while (!exit) {
-            auto maybe_packet = server_socket.try_receive();
+            auto maybe_packet = server_socket.receive_timeout(MONITORING_REQ_MS);
             if (maybe_packet.has_value()) {
                 management_service->remove_by_mac_address(
                     maybe_packet.value().received_packet().header.sender_addresses.mac

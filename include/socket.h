@@ -13,7 +13,7 @@
 #define DISCOVERY_MANAGER_PORT 37041
 #define SLEEP_STATUS_PORT 38030
 
-#define DEFAULT_TRY_US 100000
+#define DEFAULT_TRY_MS 10
 
 using namespace std;
 
@@ -72,13 +72,6 @@ class UdpReceiverSocket {
         
         thread_local static IpAddress dummy_ip;
 
-        optional<size_t> receive_with_block_type(
-            uint8_t *buffer,
-            size_t capacity,
-            BlockType block_type,
-            IpAddress& src_address
-        );
-
     public:
         /** Creates a receiver socket that will listen to the given port in
          * the host's IP address.
@@ -102,9 +95,10 @@ class UdpReceiverSocket {
         /** Like .receive() but does not block. Returns an empty value if a
          * packet could not be received.
          */
-        optional<size_t> try_receive(
+        optional<size_t> receive_timeout(
             uint8_t *buffer,
             size_t capacity,
+            uint64_t wait_ms,
             IpAddress& src_address = dummy_ip
         );
 
@@ -114,7 +108,7 @@ class UdpReceiverSocket {
         /** Like .receive() but does not block. Returns an empty value if a
          * packet could not be received.
          */
-        optional<string> try_receive(IpAddress& src_address = dummy_ip);
+        optional<string> receive_timeout(uint64_t wait_ms, IpAddress& src_address = dummy_ip);
 
         /** Receives a packet that is automatically deserialized. If the packet
          * is not recognized in the deserialization, this method returns false.
@@ -124,7 +118,7 @@ class UdpReceiverSocket {
         /** Like .receive() but does not block. Returns an empty value if a
          * packet could not be received.
          */
-        optional<bool> try_receive(Packet& packet);
+        optional<bool> receive_timeout(Packet& packet, uint64_t wait_ms);
 
         /** Enables or disables broadcast given the boolean argument. 
          * If no argument is given, then broadcast is enabled.
@@ -183,7 +177,7 @@ class ServerSocket {
         Request receive();
 
         /** Receives the next request without blocking. */
-        optional<Request> try_receive();
+        optional<Request> receive_timeout(uint64_t wait_ms);
 
         /** Receives a Wake-On-LAN as the next request and sends a response. */
         void handle_wol(
@@ -228,7 +222,7 @@ class ClientSocket {
                  */
                 Packet receive_response(
                     uint16_t port, 
-                    uint64_t try_wait_us = DEFAULT_TRY_US
+                    uint64_t try_wait_ms = DEFAULT_TRY_MS
                 );
 
                 /** Receives the response possibly repeating the request only
@@ -237,7 +231,7 @@ class ClientSocket {
                 optional<Packet> receive_bounded(
                     uint64_t retry_bound,
                     uint16_t port,
-                    uint64_t try_wait_us = DEFAULT_TRY_US
+                    uint64_t try_wait_ms = DEFAULT_TRY_MS
                 );
         };
 
