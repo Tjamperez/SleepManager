@@ -19,7 +19,7 @@ using namespace std;
 struct Arguments {
     enum NodeType {
         PARTICIPANT,
-        ḾANAGER
+        MANAGER
     };
 
     string interface;
@@ -61,7 +61,7 @@ int Arguments::parse(int argc, char const *argv[])
 
         while (argv[i] != nullptr) {
             if (strcmp(argv[i], "manager") == 0) {
-                this->node_type = Arguments::ḾANAGER;
+                this->node_type = Arguments::MANAGER;
             } else if (
                 strcmp(argv[i], "--interface") == 0
                 || strcmp(argv[i], "-i") == 0
