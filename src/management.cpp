@@ -182,7 +182,7 @@ bool ManagementService::wakeup(string const& hostname)
 vector<shared_ptr<WorkStation>> ManagementService::participant_list()
 {
     SharedLockGuard<shared_mutex> lock(this->rw_data_lock);
-    vector<shared_ptr<WorkStation>> vec(this->mac_address_index.size());
+    vector<shared_ptr<WorkStation>> vec;
     for (auto entry : this->mac_address_index) {
         vec.push_back(get<1>(entry));
     }
