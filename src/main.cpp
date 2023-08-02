@@ -38,10 +38,12 @@ int main(int argc, char const *argv[])
 
     set_global_interface_name(arguments.interface);
 
-    ServerSocket socket(1234);
+    ServerSocket socket(5000);
+    socket.enable_broadcast();
+
     ServerSocket::Request request = socket.receive();
     cout << "request received" << endl;
-    request.respond(1234);
+    request.respond(5001);
     cout << "response sent" << endl;
 
     /*
