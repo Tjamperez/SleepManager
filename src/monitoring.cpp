@@ -30,6 +30,7 @@ void monitoring_main(shared_ptr<ManagementService> management_service)
                 = request.receive_bounded(MAX_RETRIES, SLEEP_STATUS_MANAGER_PORT);
             WorkStation::Status sleep_status;
             if (maybe_packet.has_value()) {
+                sleep_status = WorkStation::AWAKEN;
             } else {
                 sleep_status = WorkStation::ASLEEP;
             }
