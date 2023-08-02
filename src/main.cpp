@@ -7,6 +7,7 @@
 #include <iostream>
 #include "../include/participant.h"
 #include "../include/manager.h"
+#include "../include/socket.h"
 //#include "../include/discovery.h"
 //#include "../include/management.h"
 //#include "../include/monitoring.h"
@@ -37,6 +38,13 @@ int main(int argc, char const *argv[])
 
     set_global_interface_name(arguments.interface);
 
+    ServerSocket socket(1234);
+    ServerSocket::Request request = socket.receive();
+    cout << "request received" << endl;
+    request.respond(1234);
+    cout << "response sent" << endl;
+
+    /*
     switch (arguments.node_type) {
         case Arguments::PARTICIPANT:
             cout << "participant" << endl;
@@ -47,6 +55,7 @@ int main(int argc, char const *argv[])
             manager_main();
             break;
     }
+    */
 
     return 0;
 }
