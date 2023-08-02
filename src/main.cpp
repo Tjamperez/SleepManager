@@ -46,6 +46,11 @@ int main(int argc, char const *argv[])
     request.respond(5001);
     cout << "response sent" << endl;
 
+    ServerSocket::Request request2 = socket.receive();
+    cout << "request2 received" << endl;
+    request2.respond(5001);
+    cout << "response2 sent" << endl;
+
     /*
     switch (arguments.node_type) {
         case Arguments::PARTICIPANT:
