@@ -7,6 +7,7 @@
 #include <iostream>
 #include "../include/participant.h"
 #include "../include/manager.h"
+#include "../include/socket.h"
 //#include "../include/discovery.h"
 //#include "../include/management.h"
 //#include "../include/monitoring.h"
@@ -37,6 +38,21 @@ int main(int argc, char const *argv[])
 
     set_global_interface_name(arguments.interface);
 
+    ClientSocket socket;
+
+    PacketBody body;
+    body.type  = PacketBody::DISCOVERY;
+
+    ClientSocket::Request request =
+        socket.request(body, IpAddress { 10, 0, 0, 10 }, 1234);
+
+    cout << "request sent" << endl;
+
+    Packet response = request.receive_response(1234);
+
+    cout << "response received" << endl;
+
+    /*
     switch (arguments.node_type) {
         case Arguments::PARTICIPANT:
             cout << "participant" << endl;
@@ -47,6 +63,7 @@ int main(int argc, char const *argv[])
             manager_main();
             break;
     }
+    */
 
     return 0;
 }
