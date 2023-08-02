@@ -112,6 +112,8 @@ void PacketSerializer::write(string text)
             escape = false;
         } else if (ch == '\\') {
             escape = true;
+        } else {
+            this->serialized += ch;
         }
     }
     this->serialized += FIELD_END;
