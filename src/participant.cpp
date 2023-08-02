@@ -17,6 +17,8 @@ static void disconnect_to_manager(
 
 static void listen_wol();
 
+static void listen_monitoring(IpAddress manager_ip);
+
 void participant_main()
 {
     ClientSocket client_socket;
@@ -25,7 +27,12 @@ void participant_main()
     wol_thread.detach();
 
     NodeAddresses manager_addresses = connect_to_manager(client_socket);
+
     cerr << "Connected to " << manager_addresses.ip << endl;
+
+    thread monitoring_thread(listen_monitoring, manager_addresses.ip);
+    monitoring_thread.detach();
+
     manager_ip = manager_addresses.ip;
     signal(SIGINT, sigint_handler);
 
@@ -87,6 +94,15 @@ static void listen_wol()
     socket.enable_broadcast();
     while (true) {
         socket.handle_wol(IpAddress { 255, 255, 255, 255 }, WOL_PARTICIPANT_PORT);
+    }
+}
+
+static void listen_monitoring(IpAddress manager_ip)
+{
+    ServerSocket socket(SLEEP_STATUS_PARTICIPANT_PORT);
+    while (true) {
+        ServerSocket::Request request = socket.receive();
+        request.respond(SLEEP_STATUS_MANAGER_PORT);
     }
 }
 

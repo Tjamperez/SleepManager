@@ -2,7 +2,7 @@
 #include "../include/socket.h"
 
 #define MONITORING_TICK_US 50000 
-#define MONITORING_REQ_MS 10
+#define MONITORING_REQ_MS 100
 #define MAX_RETRIES 3
 
 void monitoring_main(shared_ptr<ManagementService> management_service)
@@ -19,7 +19,7 @@ void monitoring_main(shared_ptr<ManagementService> management_service)
             MacAddress mac = participant->addresses().mac;
             requests.push_back(make_pair(
                 mac,
-                client_socket.request(packet_body, ip, SLEEP_STATUS_PORT)
+                client_socket.request(packet_body, ip, SLEEP_STATUS_PARTICIPANT_PORT)
             ));
         }
 
@@ -27,7 +27,7 @@ void monitoring_main(shared_ptr<ManagementService> management_service)
             auto mac = get<0>(mac_request_pair);
             auto request = get<1>(mac_request_pair);
             optional<Packet> maybe_packet
-                = request.receive_bounded(MAX_RETRIES, SLEEP_STATUS_PORT);
+                = request.receive_bounded(MAX_RETRIES, SLEEP_STATUS_MANAGER_PORT);
             WorkStation::Status sleep_status;
             if (maybe_packet.has_value()) {
             } else {
