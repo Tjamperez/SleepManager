@@ -39,17 +39,15 @@ int main(int argc, char const *argv[])
     set_global_interface_name(arguments.interface);
 
     ClientSocket socket;
+    socket.enable_broadcast();
 
     PacketBody body;
     body.type  = PacketBody::DISCOVERY;
 
     ClientSocket::Request request =
-        socket.request(body, IpAddress { 10, 0, 0, 10 }, 1234);
-
+        socket.request(body, IpAddress { 255, 255, 255, 255 }, 5000);
     cout << "request sent" << endl;
-
-    Packet response = request.receive_response(1234);
-
+    Packet response = request.receive_response(5001);
     cout << "response received" << endl;
 
     /*
