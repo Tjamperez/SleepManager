@@ -8,7 +8,7 @@ class SharedLockGuard {
     public:
         SharedLockGuard(M& rw_lock_): rw_lock(rw_lock_)
         {
-            this->rw_lock.unlock_shared();
+            this->rw_lock.lock_shared();
         }
         ~SharedLockGuard()
         {

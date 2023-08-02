@@ -156,6 +156,7 @@ static void render(vector<shared_ptr<WorkStation>> participants)
         }
         cout << endl;
     }
+    cout << endl;
 }
 
 static void handle_manager_input(
