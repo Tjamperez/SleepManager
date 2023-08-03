@@ -5,6 +5,8 @@
 #include <thread>
 #include <csignal>
 
+#define EXIT_RETRY_BOUND 3
+
 static atomic<IpAddress> manager_ip;
 
 static void sigint_handler(int signal);
@@ -88,7 +90,7 @@ static void disconnect_to_manager(
     PacketBody packet_body;
     packet_body.type = PacketBody::EXIT;
     auto request = client_socket.request(packet_body, manager_ip, EXIT_PORT);
-    request.receive_response(EXIT_PORT);
+    request.receive_bounded(EXIT_RETRY_BOUND, SLEEP_STATUS_PARTICIPANT_PORT);
 }
 
 static void listen_wol()

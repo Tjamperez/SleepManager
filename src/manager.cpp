@@ -8,6 +8,8 @@
 #include <csignal>
 #include <thread>
 
+#define EXIT_RETRY_BOUND 3
+
 static void sigint_handler(int signal);
 
 void manager_main()
@@ -29,8 +31,9 @@ static void sigint_handler(int signal)
     client_socket.enable_broadcast();
     PacketBody packet_body;
     packet_body.type = PacketBody::EXIT;
-    client_socket.request(
+    auto request = client_socket.request(
         packet_body, IpAddress { 255, 255, 255, 255 },
         SLEEP_STATUS_PARTICIPANT_PORT);
+    request.receive_bounded(EXIT_RETRY_BOUND, EXIT_PORT);
     exit(130);
 }
