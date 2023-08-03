@@ -468,13 +468,13 @@ optional<Packet> ClientSocket::Request::receive_bounded(
     while (retry_bound > 0) {
         optional<bool> read = socket.receive_timeout(received_packet, try_wait_ms);
         if (read.has_value() && read.value()) {
-            retry_bound = 0;
+            return make_optional(received_packet);
         } else {
             this->send();
             retry_bound--;
         }
     }
-    return received_packet;
+    return optional<Packet>();
 }
 
 static NodeAddresses host_addresses(int socket, string const& interface)

@@ -39,11 +39,12 @@ void monitoring_main(shared_ptr<ManagementService> management_service)
 
         bool exit = false;
         while (!exit) {
-            auto maybe_packet = server_socket.receive_timeout(MONITORING_REQ_MS);
-            if (maybe_packet.has_value()) {
+            auto maybe_req = server_socket.receive_timeout(MONITORING_REQ_MS);
+            if (maybe_req.has_value()) {
                 management_service->remove_by_mac_address(
-                    maybe_packet.value().received_packet().header.sender_addresses.mac
+                    maybe_req.value().received_packet().header.sender_addresses.mac
                 );
+                maybe_req.value().respond(EXIT_PORT);
             } else {
                 exit = true;
             }
