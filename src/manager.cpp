@@ -23,9 +23,11 @@ void manager_main()
     discovery_thread.detach();
 
     manager_interface_main(management_service);
+
+    manager_send_exit();
 }
 
-static void sigint_handler(int signal)
+void manager_send_exit()
 {
     ClientSocket client_socket;
     client_socket.enable_broadcast();
@@ -35,5 +37,10 @@ static void sigint_handler(int signal)
         packet_body, IpAddress { 255, 255, 255, 255 },
         SLEEP_STATUS_PARTICIPANT_PORT);
     request.receive_bounded(EXIT_RETRY_BOUND, EXIT_PORT);
+}
+
+static void sigint_handler(int signal)
+{
+    manager_send_exit();
     exit(130);
 }

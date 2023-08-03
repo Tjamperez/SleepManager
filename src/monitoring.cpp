@@ -8,7 +8,7 @@
 void monitoring_main(shared_ptr<ManagementService> management_service)
 {
     ClientSocket client_socket;
-    ServerSocket server_socket(EXIT_PORT);
+    ServerSocket server_socket(MONITORING_EXIT_PORT);
 
     while (true) {
         vector<tuple<MacAddress, ClientSocket::Request>> requests;

@@ -113,6 +113,7 @@ static void listen_monitoring(Mpsc<ParticipantMsg>::Sender sender)
                 request.respond(SLEEP_STATUS_MANAGER_PORT);
                 break;
             case PacketBody::EXIT:
+                request.respond(EXIT_PORT);
                 done = true;
                 break;
         }
