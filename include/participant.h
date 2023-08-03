@@ -7,6 +7,7 @@ using namespace std;
 
 enum ParticipantMsg {
     PARTICIPANT_WAKEUP,
+    PARTICIPANT_MANG_EXITED,
     PARTICIPANT_EXIT
 };
 

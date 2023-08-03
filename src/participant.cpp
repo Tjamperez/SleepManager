@@ -17,7 +17,7 @@ static void disconnect_to_manager(
 
 static void listen_wol();
 
-static void listen_monitoring(IpAddress manager_ip);
+static void listen_monitoring(Mpsc<ParticipantMsg>::Sender sender);
 
 void participant_main()
 {
@@ -30,15 +30,16 @@ void participant_main()
 
     cerr << "Connected to " << manager_addresses.ip << endl;
 
-    thread monitoring_thread(listen_monitoring, manager_addresses.ip);
-    monitoring_thread.detach();
-
     manager_ip = manager_addresses.ip;
     signal(SIGINT, sigint_handler);
 
     auto channel = Mpsc<ParticipantMsg>::Channel::open();
     Mpsc<ParticipantMsg>::Sender sender = move(channel.sender);
     Mpsc<ParticipantMsg>::Receiver receiver = move(channel.receiver);
+
+    thread monitoring_thread(listen_monitoring, sender);
+    monitoring_thread.detach();
+
 
     thread interface_thread(participant_interface_main, sender);
     interface_thread.detach();
@@ -49,15 +50,17 @@ void participant_main()
         if (message.has_value()) {
             switch (message.value()) {
                 case PARTICIPANT_EXIT:
+                    disconnect_to_manager(client_socket, manager_addresses.ip);
+                case PARTICIPANT_MANG_EXITED:
                     exit = true;
                     break;
             }
         } else {
             exit = true;
+            disconnect_to_manager(client_socket, manager_addresses.ip);
         }
     }
 
-    disconnect_to_manager(client_socket, manager_addresses.ip);
 }
 
 static NodeAddresses connect_to_manager(ClientSocket& client_socket)
@@ -97,13 +100,22 @@ static void listen_wol()
     }
 }
 
-static void listen_monitoring(IpAddress manager_ip)
+static void listen_monitoring(Mpsc<ParticipantMsg>::Sender sender)
 {
     ServerSocket socket(SLEEP_STATUS_PARTICIPANT_PORT);
-    while (true) {
+    bool done = false;
+    while (!done) {
         ServerSocket::Request request = socket.receive();
-        request.respond(SLEEP_STATUS_MANAGER_PORT);
+        switch (request.received_packet().body.type) {
+            case PacketBody::SLEEP_STATUS:
+                request.respond(SLEEP_STATUS_MANAGER_PORT);
+                break;
+            case PacketBody::EXIT:
+                done = true;
+                break;
+        }
     }
+    sender.send(PARTICIPANT_MANG_EXITED);
 }
 
 static void sigint_handler(int signal)

@@ -31,6 +31,6 @@ static void sigint_handler(int signal)
     packet_body.type = PacketBody::EXIT;
     client_socket.request(
         packet_body, IpAddress { 255, 255, 255, 255 },
-        EXIT_PORT);
+        SLEEP_STATUS_PARTICIPANT_PORT);
     exit(130);
 }
