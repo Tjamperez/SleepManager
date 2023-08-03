@@ -420,9 +420,7 @@ ClientSocket::Request::Request(
 void ClientSocket::Request::send()
 {
     UdpSenderSocket socket;
-    if (this->dest_ip_address() == IpAddress { 255, 255, 255, 255 }) {
-        socket.enable_broadcast();
-    }
+    socket.enable_broadcast();
     socket.send(
         this->sent_packet,
         this->dest_ip_address(),
