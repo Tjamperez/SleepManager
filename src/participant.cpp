@@ -90,7 +90,7 @@ static void disconnect_to_manager(
     PacketBody packet_body;
     packet_body.type = PacketBody::EXIT;
     auto request = client_socket.request(packet_body, manager_ip, EXIT_PORT);
-    request.receive_bounded(EXIT_RETRY_BOUND, SLEEP_STATUS_PARTICIPANT_PORT);
+    request.receive_bounded(EXIT_RETRY_BOUND, EXIT_PORT);
 }
 
 static void listen_wol()
