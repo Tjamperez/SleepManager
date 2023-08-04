@@ -1,4 +1,6 @@
 #include "interface.h"
+#include <csignal>
+
 
 int Interface::runInterface = 1;
 
@@ -41,13 +43,39 @@ void Interface::listNetworkPCs()
     }
 }
 
+
+void signalHandler(int signal) {
+    if (signal == SIGINT) {
+        std::cout << "\nReceived Ctrl+C. Exiting gracefully..." << std::endl;
+        DiscoverySubservice::shutDown();
+        MonitoringSubservice::shutDown();
+        exit(0);
+    }
+}
+
 void Interface::interfaceLoop()
 {
     runInterface = 1;
-    while (runInterface)
-    {
+
+    signal(SIGINT, signalHandler);
+
+    while (runInterface) {
         std::string commandStr = "";
-        std::getline(std::cin, commandStr);
+
+        // Check for EOF (Ctrl+D) to handle end-of-input
+        if (!std::getline(std::cin, commandStr)) {
+            if (std::cin.eof()) {
+                std::cout << "\nReceived Ctrl+D. Exiting gracefully..." << std::endl;
+                DiscoverySubservice::shutDown();
+                MonitoringSubservice::shutDown();
+                runInterface = 0;
+                break;
+            }
+            else {
+                std::cout << "\nError occurred during input. Exiting..." << std::endl;
+                break;
+            }
+        }
 
         icmd command = parseCommand(commandStr);
 
@@ -76,8 +104,23 @@ void Interface::clientInterfaceLoop()
     runInterface = 1;
     while (runInterface)
     {
+        signal(SIGINT, signalHandler);
+
         std::string commandStr = "";
-        std::getline(std::cin, commandStr);
+        // Check for EOF (Ctrl+D) to handle end-of-input
+        if (!std::getline(std::cin, commandStr)) {
+            if (std::cin.eof()) {
+                std::cout << "\nReceived Ctrl+D. Exiting gracefully..." << std::endl;
+                DiscoverySubservice::shutDown();
+                MonitoringSubservice::shutDown();
+                runInterface = 0;
+                break;
+            }
+            else {
+                std::cout << "\nError occurred during input. Exiting..." << std::endl;
+                break;
+            }
+        }
 
         if (commandStr == "quit")
         {
