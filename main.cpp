@@ -20,21 +20,20 @@ int clientThread()
 {
     DiscoverySubservice clientDiscovery;
     MonitoringSubservice clientMonitor;
-    struct sockaddr_in server_addr;
     int serverState = -1;
     while (clRun)
     {
         if (serverState == -1)
         {
             std::cout << "Running client discovery.\n";
-            serverState = clientDiscovery.InitializeClient(server_addr);
+            serverState = clientDiscovery.InitializeClient();
             if (serverState == 1)
                 return -1;
         }
         else
         {
             std::cout << "Starting monitoring.\n";
-            clientMonitor.runMonitoringClient(server_addr);
+            clientMonitor.runMonitoringClient();
             serverState = -1;
         }
      }

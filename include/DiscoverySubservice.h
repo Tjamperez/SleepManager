@@ -23,7 +23,7 @@ class DiscoverySubservice
         virtual ~DiscoverySubservice();
 
         int InitializeServer();
-        int InitializeClient(struct sockaddr_in &server_addr);
+        int InitializeClient();
 
         static void shutDown();
 

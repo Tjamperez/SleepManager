@@ -11,7 +11,8 @@ class MonitoringSubservice
         virtual ~MonitoringSubservice();
 
         int runMonitoringServer();
-        int runMonitoringClient(struct sockaddr_in server_addr);
+        int runMonitoringSubservice(bool server);
+        int runMonitoringClient();
         static void shutDown();
 
     protected:

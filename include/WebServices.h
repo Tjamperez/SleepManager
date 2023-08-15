@@ -24,10 +24,12 @@
 #define TIMEOUT_MS 5
 #define BUFFER_SIZE 512
 #define PACKET_SIZE 132
+#define SERVER_PORT 35000
+#define MONITOR_PORT 35005
+#define CLIENT_MONITOR_PORT 35008
 
-enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_SSR, PTYPE_SSR_RESP, PTYPE_SERVER_SHUTDOWN};
+enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_MONITOR_PROBE, PTYPE_MONITORING_PROBE_RESP, PTYPE_SERVER_SHUTDOWN,PTYPE_SERVER_PROBE,PTYPE_SERVER_PROBE_RESP};
 extern std::vector<std::string> packetTypesNames;
-
  typedef struct __packet{
  uint16_t type; //Tipo do pacote
  uint16_t timestamp; // Timestamp do dado
@@ -41,6 +43,7 @@ class WebServices
     public:
         WebServices();
         virtual ~WebServices();
+        static struct sockaddr_in server_addr;
 
     static bool sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p);
     static basePacket waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutMs);

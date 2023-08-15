@@ -1,7 +1,5 @@
 #include "MonitoringSubservice.h"
 
-#define MONITOR_PORT 15005
-#define CLIENT_MONITOR_PORT 15008
 
 int MonitoringSubservice::runMonitor = 1;
 
@@ -31,7 +29,7 @@ int MonitoringSubservice::runMonitoringServer()
     WebServices::initializeSocket(sockfd, server_addr);
 
     basePacket request;
-    request.type = PTYPE_SSR;
+    request.type = PTYPE_MONITOR_PROBE;
     while (runMonitor == 1)
     {
         std::vector<ClientPC*> network = ManagementSubservice::getNetwork();
@@ -50,12 +48,12 @@ int MonitoringSubservice::runMonitoringServer()
 
             basePacket response = WebServices::waitForResponse(sockfd, client_addr, 2);
 
-            if (response.type != PTYPE_SSR_RESP)
+            if (response.type != PTYPE_MONITORING_PROBE_RESP)
             {
                 sent_bytes = sendto(sockfd, reqPacket, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
                 response = WebServices::waitForResponse(sockfd, client_addr, 2);
 
-                if (response.type != PTYPE_SSR_RESP)
+                if (response.type != PTYPE_MONITORING_PROBE_RESP)
                 {
                     ManagementSubservice::setPCStatus(network[i]->getIP(), network[i]->getMAC(), STATUS_SLEEPING);
                 }
@@ -93,7 +91,16 @@ int MonitoringSubservice::runMonitoringServer()
     return 0;
 }
 
-int MonitoringSubservice::runMonitoringClient(const struct sockaddr_in server_addr)
+int MonitoringSubservice::runMonitoringSubservice(bool server){
+    if (server == true){
+        runMonitoringServer();
+    }
+    else{
+        runMonitoringClient();
+    }
+}
+
+int MonitoringSubservice::runMonitoringClient()
 {
     runMonitor = 1;
     int sockfd;
@@ -109,15 +116,15 @@ int MonitoringSubservice::runMonitoringClient(const struct sockaddr_in server_ad
         exit(2);
     }
     char buffer[BUFFER_SIZE];
-    socklen_t server_len = sizeof(server_addr);
+    socklen_t server_len = sizeof(WebServices::server_addr);
 
     basePacket sendPack;
-    sendPack.type = PTYPE_SSR_RESP;
+    sendPack.type = PTYPE_MONITORING_PROBE_RESP;
     char* response = WebServices::serializePacket(sendPack);
     while (runMonitor)
         {
             //Receber packet do server
-            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&server_addr, &server_len);
+            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&WebServices::server_addr, &server_len);
 
             basePacket received = WebServices::deserializePacket(buffer);
             if (received.type == PTYPE_SERVER_SHUTDOWN)
@@ -126,9 +133,9 @@ int MonitoringSubservice::runMonitoringClient(const struct sockaddr_in server_ad
                 runMonitor = 0;
                 continue;
             }
-            else if (received.type == PTYPE_SSR)
+            else if (received.type == PTYPE_MONITOR_PROBE)
             {
-                ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&server_addr, server_len);
+                ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
 
                 if (sent_bytes < 0)
                     std::cerr << "sendto failed in client monitoring ss\n";
@@ -138,6 +145,35 @@ int MonitoringSubservice::runMonitoringClient(const struct sockaddr_in server_ad
         }
     close(sockfd);
     std::cout << "Stopped monitoring.\n";
+
+    basePacket sendPack;
+    sendPack.type = PTYPE_MONITORING_PROBE_RESP;
+    char* response = WebServices::serializePacket(sendPack);
+    while (runMonitor)
+        {
+            //Receber packet do server
+            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&WebServices::server_addr, &server_len);
+
+            basePacket received = WebServices::deserializePacket(buffer);
+            if (received.type == PTYPE_SERVER_SHUTDOWN)
+            {
+                std::cerr << "Server disconnecting.\n";
+                runMonitor = 0;
+                continue;
+            }
+            else if (received.type == PTYPE_MONITOR_PROBE)
+            {
+                ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
+
+                if (sent_bytes < 0)
+                    std::cerr << "sendto failed in client monitoring ss\n";
+                /*else
+                    std::cerr <<"Sent response packet.\n";*/
+            }
+        }
+    close(sockfd);
+    std::cout << "Finding Leader.\n";
+
     return 0;
 }
 

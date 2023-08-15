@@ -1,7 +1,7 @@
 #include "DiscoverySubservice.h"
 #include "ClientPC.h"
 
-#define SERVER_PORT 15000
+
 
 int DiscoverySubservice::runDiscovery = 1;
 
@@ -134,7 +134,7 @@ int DiscoverySubservice::InitializeServer()
     return 1;
 }
 
-int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
+int DiscoverySubservice::InitializeClient()
 {
     runDiscovery = 1;
     int sockfd;
@@ -161,10 +161,10 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
         return 1;
     }
 
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-    server_addr.sin_port = htons(SERVER_PORT);
+    memset(&WebServices::server_addr, 0, sizeof(WebServices::server_addr));
+    WebServices::server_addr.sin_family = AF_INET;
+    WebServices::server_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+    WebServices::server_addr.sin_port = htons(SERVER_PORT);
 
     bool serverFound = false;
 
@@ -174,20 +174,27 @@ int DiscoverySubservice::InitializeClient(struct sockaddr_in &server_addr)
     basePacket p;
     p.type = PTYPE_DISCOVERY;
 
+    int count = 0;
+
     // Espera o server responder
     while (!serverFound && runDiscovery)
     {
         // Mandar pacote de broadcast
-        if (WebServices::sendBroadcast(sockfd, server_addr, p))
+        if (WebServices::sendBroadcast(sockfd, WebServices::server_addr, p))
         {
             // Esperar resposta do server
-            rtPacket = WebServices::waitForResponse(sockfd, server_addr, 2);
+            rtPacket = WebServices::waitForResponse(sockfd, WebServices::server_addr, 2);
             if (rtPacket.type == PTYPE_DISCOVERY_ACK)
             {
                 serverFound = true;
             }
         }
         usleep(2000);
+        count++;
+        if(serverFound = false && count == 3)
+            {
+                //passou 6 micro manda mensagem joga eleicao?
+            }
     }
 
     // Fechar o socket
