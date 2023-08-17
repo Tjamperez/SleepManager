@@ -85,9 +85,40 @@ int MonitoringSubservice::runMonitoringServer()
         ssize_t sent_bytes = sendto(sockfd, serPacket, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
     }
 
+    basePacket server_resp;
+    server_resp.type = PTYPE_SERVER_PROBE_RESP;
+    char* response = WebServices::serializePacket(server_resp);
+    char buffer[BUFFER_SIZE];
+    socklen_t server_len = sizeof(WebServices::server_addr);
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+
+    char client_ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+
+
+    while (runMonitor)
+        {
+            //Receber packet do server
+            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&client_addr, &client_len);
+
+            basePacket received = WebServices::deserializePacket(buffer);
+            if (received.type == PTYPE_SERVER_PROBE)
+            {
+                ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
+
+                if (sent_bytes < 0)
+                    std::cerr << "sendto failed in client monitoring ss\n";
+                /*else
+                    std::cerr <<"Sent response packet.\n";*/
+            }
+        }
+
+
+
     close(sockfd);
 
-    std::cerr << "Returning form monitoring server\n";
+    std::cerr << "Returning from monitoring server\n";
     return 0;
 }
 
@@ -143,33 +174,31 @@ int MonitoringSubservice::runMonitoringClient()
                     std::cerr <<"Sent response packet.\n";*/
             }
         }
-    close(sockfd);
     std::cout << "Stopped monitoring.\n";
 
     basePacket sendPack;
-    sendPack.type = PTYPE_MONITORING_PROBE_RESP;
-    char* response = WebServices::serializePacket(sendPack);
+    sendPack.type = PTYPE_SERVER_PROBE;
+    char* reqPack = WebServices::serializePacket(sendPack);
+    int count = 0;
     while (runMonitor)
         {
-            //Receber packet do server
-            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&WebServices::server_addr, &server_len);
+            //Mandar packet pro server
+            ssize_t sent_bytes = sendto(sockfd, reqPack, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
 
-            basePacket received = WebServices::deserializePacket(buffer);
-            if (received.type == PTYPE_SERVER_SHUTDOWN)
+            basePacket response = WebServices::waitForResponse(sockfd, WebServices::server_addr, 2);
+            if (response.type == PTYPE_SERVER_SHUTDOWN)
             {
                 std::cerr << "Server disconnecting.\n";
                 runMonitor = 0;
                 continue;
             }
-            else if (received.type == PTYPE_MONITOR_PROBE)
+            else if(response.type != PTYPE_SERVER_PROBE_RESP && count == 3)
             {
-                ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
-
-                if (sent_bytes < 0)
-                    std::cerr << "sendto failed in client monitoring ss\n";
-                /*else
-                    std::cerr <<"Sent response packet.\n";*/
+                std::cerr << "Houston we have a problem.\n";
+                //Start election NOW!!!!!!
             }
+            usleep(2000);
+            count++;
         }
     close(sockfd);
     std::cout << "Finding Leader.\n";
