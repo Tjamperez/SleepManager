@@ -28,7 +28,7 @@
 #define MONITOR_PORT 35005
 #define CLIENT_MONITOR_PORT 35008
 
-enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_MONITOR_PROBE, PTYPE_MONITORING_PROBE_RESP, PTYPE_SERVER_SHUTDOWN,PTYPE_SERVER_PROBE,PTYPE_SERVER_PROBE_RESP};
+enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_MONITOR_PROBE, PTYPE_MONITORING_PROBE_RESP, PTYPE_SERVER_SHUTDOWN,PTYPE_SERVER_PROBE,PTYPE_SERVER_PROBE_RESP, PTYPE_LIST_SIZE, PTYPE_LIST_ELEMENT, PTYPE_ELEMENT_REQUEST, PTYPE_LIST_END};
 extern std::vector<std::string> packetTypesNames;
  typedef struct __packet{
  uint16_t type; //Tipo do pacote
@@ -50,6 +50,7 @@ class WebServices
     static bool initializeSocket(int &sockfd, const struct sockaddr_in &server_addr);
     static char* serializePacket(basePacket p);
     static basePacket deserializePacket(char* serializedData);
+    std::string getMACAddress(std::string interface);
     protected:
 
     private:

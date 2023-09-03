@@ -7,11 +7,12 @@
 
 enum pcStatus {STATUS_SLEEPING, STATUS_AWAKE};
 
-class ClientPC
+class NetworkPC
 {
     public:
-        ClientPC(std::string IP, std::string MAC);
-        virtual ~ClientPC();
+        NetworkPC(std::string IP, std::string MAC);
+        NetworkPC(NetworkPC &t);
+        virtual ~NetworkPC();
 
         std::string getIP(){return IP;}
         std::string getMAC(){return MAC;}

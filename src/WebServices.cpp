@@ -40,7 +40,7 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     return p;
 }
 
-std::string getMACAddress(std::string interface)
+std::string WebServices::getMACAddress(std::string interface)
 {
     struct ifreq ifr;
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -126,12 +126,10 @@ std::string getMACAddress()
 }*/
 
 
-bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p)
+bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &sendAddr, basePacket p)
 {
-    strcpy(p._payload, getMACAddress("eth0").c_str());
-    //std::cout << "MAC: " << p._payload << "\n";
     char* broadcastMessage = WebServices::serializePacket(p);
-    ssize_t num_bytes = sendto(sockfd, broadcastMessage, PACKET_SIZE, 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    ssize_t num_bytes = sendto(sockfd, broadcastMessage, PACKET_SIZE, 0, (struct sockaddr *)&sendAddr, sizeof(sendAddr));
     if (num_bytes < 0)
     {
         std::cerr << "sendto failed\n";

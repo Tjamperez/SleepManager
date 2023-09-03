@@ -1,6 +1,6 @@
 #include "ManagementSubservice.h"
 
-std::vector<ClientPC*> ManagementSubservice::network = {};
+std::vector<NetworkPC*> ManagementSubservice::network = {};
 std::mutex ManagementSubservice::networkMutex;
 
 ManagementSubservice::ManagementSubservice()
@@ -13,10 +13,15 @@ ManagementSubservice::~ManagementSubservice()
     //dtor
 }
 
-const std::vector<ClientPC*> ManagementSubservice::getNetwork()
+std::vector<NetworkPC> ManagementSubservice::getNetwork()
 {
     networkMutex.lock();
-    const std::vector<ClientPC*> ret = network;
+    std::vector<NetworkPC> ret;
+    for (pc : network)
+    {
+        NetworkPC currentPC(pc);
+        ret.push_back(currentPC);
+    }
     networkMutex.unlock();
     return ret;
 }
@@ -32,7 +37,7 @@ bool ManagementSubservice::AddPCToNetwork(std::string IP, std::string MAC)
             return false;
         }
     }
-    ClientPC* newPC = new ClientPC(IP, MAC);
+    NetworkPC* newPC = new NetworkPC(IP, MAC);
     network.push_back(newPC);
     networkMutex.unlock();
     return true;
@@ -41,7 +46,7 @@ bool ManagementSubservice::AddPCToNetwork(std::string IP, std::string MAC)
 void ManagementSubservice::setPCStatus(std::string IP, std::string MAC, pcStatus status)
 {
     networkMutex.lock();
-    ClientPC* found = nullptr;
+    NetworkPC* found = nullptr;
     for (auto & element : network)
     {
         if (element->getIP() == IP && element->getMAC() == MAC)

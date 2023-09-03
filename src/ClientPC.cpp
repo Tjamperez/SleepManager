@@ -1,12 +1,12 @@
 #include "ClientPC.h"
 
-ClientPC::ClientPC(std::string IP, std::string MAC)
+NetworkPC::NetworkPC(std::string IP, std::string MAC)
 {
     this->IP = IP;
     this->MAC = MAC;
 }
 
-ClientPC::~ClientPC()
+NetworkPC::~NetworkPC()
 {
     //dtor
 }
