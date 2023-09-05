@@ -2,6 +2,10 @@
 
 std::vector<std::string> packetTypesNames = {"PTYPE_NULL", "PTYPE_DISCOVERY", "PTYPE_DISCOVERY_ACK", "PTYPE_SSR", "PTYPE_SSR_RESP", "PTYPE_SERVER_SHUTDOWN"};
 
+struct sockaddr_in WebServices::server_addr = {};
+
+std::string WebServices::networkInterface = "eth0";
+
 WebServices::WebServices()
 {
     //ctor

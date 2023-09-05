@@ -13,10 +13,11 @@
 #include "interface.h"
 #include "DiscoverySubservice.h"
 #include "MonitoringSubservice.h"
+#include "replicationSubservice.h"
 
 bool clRun = true;
 
-int clientThread()
+/*int clientThread()
 {
     DiscoverySubservice clientDiscovery;
     MonitoringSubservice clientMonitor;
@@ -76,4 +77,26 @@ int main(int argc, char* argv[])
     {
         std::cerr << "Argument: \"manager\" for manager or nothing for client.\n";
     }
+}*/
+
+
+int main(int argc, char* argv[])
+{
+    DiscoverySubservice discovery;
+    MonitoringSubservice monitoring;
+    Interface interface;
+    ReplicationSubservice replication;
+
+    std::thread discoveryThread(&DiscoverySubservice::run, &discovery);
+    std::thread monitoringThread(&MonitoringSubservice::runMonitoringSubservice, &monitoring);
+    std::thread interfaceThread(&Interface::startInterface, &interface);
+    std::thread replicationThread(&ReplicationSubservice::runLoop, &replication);
+
+    if (argc == 2)
+    {
+        WebServices::networkInterface = std::string(argv[1]);   
+    }
+    
+    //inicializar procura de sever
+    
 }

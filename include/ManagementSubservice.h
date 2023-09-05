@@ -22,12 +22,15 @@ class ManagementSubservice
         virtual ~ManagementSubservice();
 
         static bool AddPCToNetwork(std::string IP, std::string MAC);
-        static const std::vector<ClientPC*> getNetwork();
+        static std::vector<NetworkPC> getNetwork();
         static void setPCStatus(std::string IP, std::string MAC, pcStatus status);
         static int awakePC(unsigned long int index);
+        static void syncList(std::vector<NetworkPC> syncList);
+        static bool isClient;
+        static bool inElection;
 
     protected:
-        static std::vector<ClientPC*> network;
+        static std::vector<NetworkPC> network;
         static std::mutex networkMutex;
 
     private:

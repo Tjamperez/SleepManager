@@ -1,7 +1,9 @@
 #include "ManagementSubservice.h"
 
-std::vector<NetworkPC*> ManagementSubservice::network = {};
+std::vector<NetworkPC> ManagementSubservice::network = {};
 std::mutex ManagementSubservice::networkMutex;
+bool ManagementSubservice::isClient = true;
+bool ManagementSubservice::inElection = false;
 
 ManagementSubservice::ManagementSubservice()
 {
@@ -16,11 +18,11 @@ ManagementSubservice::~ManagementSubservice()
 std::vector<NetworkPC> ManagementSubservice::getNetwork()
 {
     networkMutex.lock();
-    std::vector<NetworkPC> ret;
-    for (pc : network)
+    unsigned int ntSize = network.size();
+    std::vector<NetworkPC> ret(ntSize);
+    for (int i = ntSize - 1; i >= 0; i--)
     {
-        NetworkPC currentPC(pc);
-        ret.push_back(currentPC);
+        ret[i] = network[i];
     }
     networkMutex.unlock();
     return ret;
@@ -31,13 +33,13 @@ bool ManagementSubservice::AddPCToNetwork(std::string IP, std::string MAC)
     networkMutex.lock();
     for (auto & element : network)
     {
-        if (IP == element->getIP() && MAC == element->getMAC())
+        if (IP == element.getIP() && MAC == element.getMAC())
         {
             networkMutex.unlock();
             return false;
         }
     }
-    NetworkPC* newPC = new NetworkPC(IP, MAC);
+    NetworkPC newPC = NetworkPC(IP, MAC);
     network.push_back(newPC);
     networkMutex.unlock();
     return true;
@@ -46,18 +48,18 @@ bool ManagementSubservice::AddPCToNetwork(std::string IP, std::string MAC)
 void ManagementSubservice::setPCStatus(std::string IP, std::string MAC, pcStatus status)
 {
     networkMutex.lock();
-    NetworkPC* found = nullptr;
-    for (auto & element : network)
+    unsigned int found = -1;
+    for (unsigned int i = 0; i < network.size(); i++)
     {
-        if (element->getIP() == IP && element->getMAC() == MAC)
+        if (network[i].getIP() == IP && network[i].getMAC() == MAC)
         {
-            found = element;
+            found = i;
             break;
         }
     }
-    if (found != nullptr)
+    if (found >= 0)
     {
-        found->setStatus(status);
+        network[found].setStatus(status);
     }
     networkMutex.unlock();
 }
@@ -96,8 +98,8 @@ int ManagementSubservice::awakePC(unsigned long int index)
         std::cerr << "Index out of bounds!\n";
         return 1;
     }
-    std::string IP = network[index]->getIP();
-    std::string MAC = network[index]->getMAC();
+    std::string IP = network[index].getIP();
+    std::string MAC = network[index].getMAC();
     networkMutex.unlock();
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -137,4 +139,20 @@ int ManagementSubservice::awakePC(unsigned long int index)
 
     close(sockfd);
     return 0;
+}
+
+
+void ManagementSubservice::syncList(std::vector<NetworkPC> syncList)
+{
+    networkMutex.lock();
+    if (network.size() < syncList.size())
+    {
+        network.resize(syncList.size());
+    }
+
+    for (unsigned int i = 0; i < syncList.size(); i++)
+    {
+        network[i] = syncList[i];
+    }
+    networkMutex.unlock();
 }

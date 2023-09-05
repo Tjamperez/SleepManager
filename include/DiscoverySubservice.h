@@ -22,6 +22,7 @@ class DiscoverySubservice
         DiscoverySubservice();
         virtual ~DiscoverySubservice();
 
+        int run();
         int InitializeServer();
         int InitializeClient();
 

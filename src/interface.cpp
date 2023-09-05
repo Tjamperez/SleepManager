@@ -14,9 +14,9 @@ Interface::~Interface()
     //dtor
 }
 
-void Interface::startInterface(bool server)
+void Interface::startInterface()
 {
-    if (server)
+    if (!ManagementSubservice::isClient)
         interfaceLoop();
     else
         clientInterfaceLoop();
@@ -25,12 +25,12 @@ void Interface::startInterface(bool server)
 void Interface::listNetworkPCs()
 {
     //std::cout << "Is the mutex locked?\n";
-    const std::vector<ClientPC*> network = ManagementSubservice::getNetwork();
+    std::vector<NetworkPC> network = ManagementSubservice::getNetwork();
     //std::cout << "Not anymore!\n";
     for(long unsigned int i = 0; i < network.size(); i++)
     {
-        std::cout << "Index: " << i << "\tIP: " << network[i]->getIP() << "\tMAC: " << network[i]->getMAC() << "\tStatus: ";
-        switch (network[i]->getStatus())
+        std::cout << "Index: " << i << "\tIP: " << network[i].getIP() << "\tMAC: " << network[i].getMAC() << "\tStatus: ";
+        switch (network[i].getStatus())
         {
         case STATUS_SLEEPING:
             std::cout << "asleep";

@@ -1,7 +1,7 @@
 #include "DiscoverySubservice.h"
 #include "ClientPC.h"
 
-
+bool serverFound = false;
 
 int DiscoverySubservice::runDiscovery = 1;
 
@@ -13,6 +13,26 @@ DiscoverySubservice::DiscoverySubservice()
 DiscoverySubservice::~DiscoverySubservice()
 {
     //dtor
+}
+
+int DiscoverySubservice::run()
+{
+    while (runDiscovery)
+    {
+        if (!ManagementSubservice::inElection)
+        {
+            if (ManagementSubservice::isClient)
+            {
+                if (!serverFound)
+                    InitializeClient();
+            }
+            else
+            {
+                InitializeServer();
+            }
+        }
+    }
+    return 0;
 }
 
 int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in client_addr,  socklen_t &client_len, char* buffer, size_t buffSize)
@@ -40,7 +60,7 @@ int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in cli
     timeout.tv_sec = 0;
     timeout.tv_usec = 5000;
 
-    while (runDiscovery)
+    while (!ManagementSubservice::isClient && runDiscovery)
     {
         memset(buffer, 0, buffSize);
         /*ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&client_addr, &client_len);
@@ -101,7 +121,7 @@ int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in cli
                  return 1;
             }
 
-            if (ManagementSubservice::AddPCToNetwork(client_ip, client_mac));
+            if (ManagementSubservice::AddPCToNetwork(client_ip, client_mac))
                 std::cout << "Response sent to the client." << std::endl;
             
             }
@@ -166,7 +186,7 @@ int DiscoverySubservice::InitializeClient()
     WebServices::server_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
     WebServices::server_addr.sin_port = htons(SERVER_PORT);
 
-    bool serverFound = false;
+    serverFound = false;
 
     basePacket rtPacket;
     rtPacket.type = PTYPE_NULL;
@@ -177,7 +197,7 @@ int DiscoverySubservice::InitializeClient()
     int count = 0;
 
     // Espera o server responder
-    while (!serverFound && runDiscovery)
+    while (!serverFound && ManagementSubservice::isClient && runDiscovery)
     {
         // Mandar pacote de broadcast
         if (WebServices::sendBroadcast(sockfd, WebServices::server_addr, p))
@@ -191,7 +211,7 @@ int DiscoverySubservice::InitializeClient()
         }
         usleep(2000);
         count++;
-        if(serverFound = false && count == 3)
+        if(serverFound == false && count == 3)
             {
                 //passou 6 micro manda mensagem joga eleicao?
             }

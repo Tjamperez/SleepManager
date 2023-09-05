@@ -11,7 +11,7 @@ class MonitoringSubservice
         virtual ~MonitoringSubservice();
 
         int runMonitoringServer();
-        int runMonitoringSubservice(bool server);
+        int runMonitoringSubservice();
         int runMonitoringClient();
         static void shutDown();
 

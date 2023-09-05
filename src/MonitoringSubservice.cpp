@@ -13,8 +13,6 @@ MonitoringSubservice::~MonitoringSubservice()
     //dtor
 }
 
-
-
 int MonitoringSubservice::runMonitoringServer()
 {
     runMonitor = 1;
@@ -32,13 +30,13 @@ int MonitoringSubservice::runMonitoringServer()
     request.type = PTYPE_MONITOR_PROBE;
     while (runMonitor == 1)
     {
-        std::vector<ClientPC*> network = ManagementSubservice::getNetwork();
+        std::vector<NetworkPC> network = ManagementSubservice::getNetwork();
         for (unsigned long int i = 0; i < network.size(); i++)
         {
             struct sockaddr_in client_addr;
             memset(&client_addr, 0, sizeof(client_addr));
             client_addr.sin_family = AF_INET;
-            inet_pton(AF_INET, network[i]->getIP().c_str(), &(client_addr.sin_addr));
+            inet_pton(AF_INET, network[i].getIP().c_str(), &(client_addr.sin_addr));
             client_addr.sin_port = htons(CLIENT_MONITOR_PORT);
 
             socklen_t client_len = sizeof(client_addr);
@@ -55,16 +53,16 @@ int MonitoringSubservice::runMonitoringServer()
 
                 if (response.type != PTYPE_MONITORING_PROBE_RESP)
                 {
-                    ManagementSubservice::setPCStatus(network[i]->getIP(), network[i]->getMAC(), STATUS_SLEEPING);
+                    ManagementSubservice::setPCStatus(network[i].getIP(), network[i].getMAC(), STATUS_SLEEPING);
                 }
                 else
                 {
-                    ManagementSubservice::setPCStatus(network[i]->getIP(), network[i]->getMAC(), STATUS_AWAKE);
+                    ManagementSubservice::setPCStatus(network[i].getIP(), network[i].getMAC(), STATUS_AWAKE);
                 }
             }
             else
             {
-                ManagementSubservice::setPCStatus(network[i]->getIP(), network[i]->getMAC(), STATUS_AWAKE);
+                ManagementSubservice::setPCStatus(network[i].getIP(), network[i].getMAC(), STATUS_AWAKE);
             }
             //std::cerr << "PTYPE: " << packetTypesNames[response.type] << "\n";
         }
@@ -73,13 +71,13 @@ int MonitoringSubservice::runMonitoringServer()
     basePacket shutdownPacket{};
     shutdownPacket.type = PTYPE_SERVER_SHUTDOWN;
     char* serPacket = WebServices::serializePacket(shutdownPacket);
-    std::vector<ClientPC*> network = ManagementSubservice::getNetwork();
+    std::vector<NetworkPC> network = ManagementSubservice::getNetwork();
     for (unsigned long int i = 0; i < network.size(); i++)
     {
         struct sockaddr_in client_addr;
         memset(&client_addr, 0, sizeof(client_addr));
         client_addr.sin_family = AF_INET;
-        inet_pton(AF_INET, network[i]->getIP().c_str(), &(client_addr.sin_addr));
+        inet_pton(AF_INET, network[i].getIP().c_str(), &(client_addr.sin_addr));
         client_addr.sin_port = htons(CLIENT_MONITOR_PORT);
         socklen_t client_len = sizeof(client_addr);
         ssize_t sent_bytes = sendto(sockfd, serPacket, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
@@ -122,12 +120,18 @@ int MonitoringSubservice::runMonitoringServer()
     return 0;
 }
 
-int MonitoringSubservice::runMonitoringSubservice(bool server){
-    if (server == true){
-        runMonitoringServer();
-    }
-    else{
-        runMonitoringClient();
+int MonitoringSubservice::runMonitoringSubservice(){
+    while (runMonitor)
+    {
+        if (!ManagementSubservice::inElection)
+        {
+            if (ManagementSubservice::isClient){
+                runMonitoringClient();
+            }
+            else{
+                runMonitoringServer();
+            }
+        }
     }
 }
 
@@ -176,7 +180,6 @@ int MonitoringSubservice::runMonitoringClient()
         }
     std::cout << "Stopped monitoring.\n";
 
-    basePacket sendPack;
     sendPack.type = PTYPE_SERVER_PROBE;
     char* reqPack = WebServices::serializePacket(sendPack);
     int count = 0;

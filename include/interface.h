@@ -23,7 +23,7 @@ class Interface
         Interface();
         virtual ~Interface();
 
-        void startInterface(bool server = true);
+        void startInterface();
 
     protected:
         void interfaceLoop();

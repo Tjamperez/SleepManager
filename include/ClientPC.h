@@ -5,13 +5,14 @@
 #include <string>
 #include <mutex>
 
-enum pcStatus {STATUS_SLEEPING, STATUS_AWAKE};
+enum pcStatus {STATUS_SLEEPING = 0, STATUS_AWAKE = 1};
 
 class NetworkPC
 {
     public:
+        NetworkPC();
         NetworkPC(std::string IP, std::string MAC);
-        NetworkPC(NetworkPC &t);
+        NetworkPC(const NetworkPC &t);
         virtual ~NetworkPC();
 
         std::string getIP(){return IP;}
