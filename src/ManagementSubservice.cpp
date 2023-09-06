@@ -15,6 +15,17 @@ ManagementSubservice::~ManagementSubservice()
     //dtor
 }
 
+
+void ManagementSubservice::startElection()
+{
+    inElection = true;
+    //rodar eleição
+    while(inElection)
+    {
+        //receber e enviar mensagens para decidir quem é o eleito
+    }
+}
+
 std::vector<NetworkPC> ManagementSubservice::getNetwork()
 {
     networkMutex.lock();

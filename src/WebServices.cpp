@@ -44,7 +44,7 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     return p;
 }
 
-std::string WebServices::getMACAddress(std::string interface)
+std::string WebServices::getMACAddress()
 {
     struct ifreq ifr;
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -53,7 +53,7 @@ std::string WebServices::getMACAddress(std::string interface)
         perror("socket creation failed");
         return "";
     }
-    std::strcpy(ifr.ifr_name, interface.c_str());
+    std::strcpy(ifr.ifr_name, networkInterface.c_str());
     if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0)
     {
         perror("ioctl failed");

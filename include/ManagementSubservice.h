@@ -26,6 +26,7 @@ class ManagementSubservice
         static void setPCStatus(std::string IP, std::string MAC, pcStatus status);
         static int awakePC(unsigned long int index);
         static void syncList(std::vector<NetworkPC> syncList);
+        static void startElection();
         static bool isClient;
         static bool inElection;
 

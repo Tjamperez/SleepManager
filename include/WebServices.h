@@ -52,7 +52,7 @@ class WebServices
     static bool initializeSocket(int &sockfd, const struct sockaddr_in &server_addr);
     static char* serializePacket(basePacket p);
     static basePacket deserializePacket(char* serializedData);
-    static std::string getMACAddress(std::string interface);
+    static std::string getMACAddress();
     protected:
 
     private:

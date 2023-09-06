@@ -213,8 +213,8 @@ int DiscoverySubservice::InitializeClient()
         count++;
         if(serverFound == false && count == 3)
             {
-                //passou 6 micro manda mensagem joga eleicao?
-            }
+               //mandar management iniciar eleição
+            } 
     }
 
     // Fechar o socket

@@ -87,16 +87,16 @@ int main(int argc, char* argv[])
     Interface interface;
     ReplicationSubservice replication;
 
+    if (argc == 2)
+    {
+        WebServices::networkInterface = std::string(argv[1]);   
+    }
+
+    //começa a rodar todos os serviços nas threads, como cliente
     std::thread discoveryThread(&DiscoverySubservice::run, &discovery);
     std::thread monitoringThread(&MonitoringSubservice::runMonitoringSubservice, &monitoring);
     std::thread interfaceThread(&Interface::startInterface, &interface);
     std::thread replicationThread(&ReplicationSubservice::runLoop, &replication);
 
-    if (argc == 2)
-    {
-        WebServices::networkInterface = std::string(argv[1]);   
-    }
-    
-    //inicializar procura de sever
     
 }
