@@ -22,9 +22,11 @@ class ReplicationSubservice
         void changeMode(bool newMode);
         void deactivate(){running = false;}
         void runLoop();
+        uint16_t getListVersion();
 
         static void serializePCListElement(listElement elem, basePacket &packet);
         static listElement deserializePCListElement(basePacket &packet);
+        
     
     private:
         void run();

@@ -301,3 +301,14 @@ void ReplicationSubservice::run()
     }
     return;
 }
+
+uint16_t ReplicationSubservice::getListVersion()
+{
+    uint16_t version = 0;
+
+    for ( auto pcElem : pcList)
+    {
+        version = pcElem.version < version ? pcElem.version : version;
+    }
+    return version;
+}
