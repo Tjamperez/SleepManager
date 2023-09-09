@@ -1,7 +1,7 @@
 #ifndef REPLICATION_H
 #define REPLICATION_H
 
-#include "managementSubservice.h"
+#include "ManagementSubservice.h"
 #include "WebServices.h"
 #include <vector>
 

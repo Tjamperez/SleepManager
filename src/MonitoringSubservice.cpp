@@ -199,11 +199,11 @@ int MonitoringSubservice::runMonitoringClient()
             {
                 std::cerr << "Houston we have a problem.\n";
                 //Start election NOW!!!!!!
+                //startElection();
             }
             usleep(2000);
             count++;
         }
-    close(sockfd);
     std::cout << "Finding Leader.\n";
 
     return 0;

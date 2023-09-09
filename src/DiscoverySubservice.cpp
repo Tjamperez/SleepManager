@@ -193,7 +193,7 @@ int DiscoverySubservice::InitializeClient()
 
     basePacket p;
     p.type = PTYPE_DISCOVERY;
-    strcpy(p._payload, WebServices::getMACAddress("eth0").c_str());
+    strcpy(p._payload, WebServices::getMACAddress().c_str());
     int count = 0;
 
     // Espera o server responder

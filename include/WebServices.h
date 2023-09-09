@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <functional>
 
 #define TIMEOUT_MS 5
 #define BUFFER_SIZE 512
@@ -27,9 +28,11 @@
 #define SERVER_PORT 35000
 #define MONITOR_PORT 35005
 #define CLIENT_MONITOR_PORT 35008
+#define ELECTION_PORT 35009
 #define REPLICATION_PORT 35011
 
-enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_MONITOR_PROBE, PTYPE_MONITORING_PROBE_RESP, PTYPE_SERVER_SHUTDOWN,PTYPE_SERVER_PROBE,PTYPE_SERVER_PROBE_RESP, PTYPE_LIST_SIZE, PTYPE_LIST_ELEMENT, PTYPE_ELEMENT_REQUEST, PTYPE_LIST_END};
+enum packetTypes {PTYPE_NULL, PTYPE_DISCOVERY, PTYPE_DISCOVERY_ACK, PTYPE_MONITOR_PROBE, PTYPE_MONITORING_PROBE_RESP, PTYPE_SERVER_SHUTDOWN,PTYPE_SERVER_PROBE,
+PTYPE_SERVER_PROBE_RESP, PTYPE_LIST_SIZE, PTYPE_LIST_ELEMENT, PTYPE_ELEMENT_REQUEST, PTYPE_LIST_END,PTYPE_ELECTION_REQUEST,PTYPE_ELECTION_RESPONSE,PTYPE_VICTORY_NOTIFICATION};
 extern std::vector<std::string> packetTypesNames;
  typedef struct __packet{
  uint16_t type; //Tipo do pacote
@@ -48,11 +51,13 @@ class WebServices
 
     static std::string networkInterface;
     static bool sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p);
+    static bool sendBroadcastElection(int sockfd, const struct sockaddr_in &server_addr, basePacket p, const std::string& machineID);
     static basePacket waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutMs);
     static bool initializeSocket(int &sockfd, const struct sockaddr_in &server_addr);
     static char* serializePacket(basePacket p);
     static basePacket deserializePacket(char* serializedData);
     static std::string getMACAddress();
+    static std::string getIPAddress();
     protected:
 
     private:

@@ -1,6 +1,7 @@
 #include "WebServices.h"
 
-std::vector<std::string> packetTypesNames = {"PTYPE_NULL", "PTYPE_DISCOVERY", "PTYPE_DISCOVERY_ACK", "PTYPE_SSR", "PTYPE_SSR_RESP", "PTYPE_SERVER_SHUTDOWN"};
+std::vector<std::string> packetTypesNames = {"PTYPE_NULL", "PTYPE_DISCOVERY", "PTYPE_DISCOVERY_ACK", "PTYPE_SSR", "PTYPE_SSR_RESP", "PTYPE_SERVER_SHUTDOWN",
+"PTYPE_ELECTION_REQUEST","PTYPE_ELECTION_RESPONSE","PTYPE_VICTORY_NOTIFICATION"};
 
 struct sockaddr_in WebServices::server_addr = {};
 
@@ -69,6 +70,45 @@ std::string WebServices::getMACAddress()
     return macAddress;
 }
 
+// Function to get the local IP address
+std::string WebServices::getIPAddress() {
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd == -1) {
+        std::cerr << "Failed to create socket." << std::endl;
+        return "";
+    }
+
+    struct sockaddr_in loopback;
+    memset(&loopback, 0, sizeof(loopback));
+    loopback.sin_family = AF_INET;
+    loopback.sin_addr.s_addr = INADDR_LOOPBACK;
+    loopback.sin_port = htons(9); // a dummy port number
+
+    if (connect(sockfd, reinterpret_cast<struct sockaddr*>(&loopback), sizeof(loopback)) == -1) {
+        std::cerr << "Failed to connect to loopback address." << std::endl;
+        close(sockfd);
+        return "";
+    }
+
+    struct sockaddr_in localAddr;
+    socklen_t addrLen = sizeof(localAddr);
+    if (getsockname(sockfd, reinterpret_cast<struct sockaddr*>(&localAddr), &addrLen) == -1) {
+        std::cerr << "Failed to get local address." << std::endl;
+        close(sockfd);
+        return "";
+    }
+
+    char buffer[INET_ADDRSTRLEN];
+    if (inet_ntop(AF_INET, &localAddr.sin_addr, buffer, sizeof(buffer)) == nullptr) {
+        std::cerr << "Failed to convert IP address to string." << std::endl;
+        close(sockfd);
+        return "";
+    }
+
+    close(sockfd);
+    return std::string(buffer);
+}
+
 /*using IpAddress = std::array<uint8_t, 4>;
 
 std::string getMACAddress()
@@ -134,6 +174,21 @@ bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &sendAddr, 
 {
     char* broadcastMessage = WebServices::serializePacket(p);
     ssize_t num_bytes = sendto(sockfd, broadcastMessage, PACKET_SIZE, 0, (struct sockaddr *)&sendAddr, sizeof(sendAddr));
+    if (num_bytes < 0)
+    {
+        std::cerr << "sendto failed\n";
+        return false;
+    }
+
+    //std::cerr << "Broadcast sent!" << std::endl;
+    return true;
+}
+
+bool WebServices::sendBroadcastElection(int sockfd, const struct sockaddr_in &sendAddr, basePacket p, const std::string& machineID)
+{
+    char* broadcastMessage = WebServices::serializePacket(p);
+    std::string messageWithID = machineID + std::string(broadcastMessage, PACKET_SIZE);
+    ssize_t num_bytes = sendto(sockfd, messageWithID.c_str(), messageWithID.size(), 0, (struct sockaddr *)&sendAddr, sizeof(sendAddr));
     if (num_bytes < 0)
     {
         std::cerr << "sendto failed\n";
