@@ -1,4 +1,5 @@
 #include "replicationSubservice.h"
+#include "ManagementSubservice.h"
 
 ReplicationSubservice::ReplicationSubservice()
 {

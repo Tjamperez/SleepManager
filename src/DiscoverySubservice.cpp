@@ -24,7 +24,10 @@ int DiscoverySubservice::run()
             if (ManagementSubservice::isClient)
             {
                 if (!serverFound)
+                {
+                    std::cout << "Init client discovery\n";
                     InitializeClient();
+                }
             }
             else
             {

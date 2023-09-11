@@ -1,9 +1,10 @@
 #ifndef REPLICATION_H
 #define REPLICATION_H
 
-#include "ManagementSubservice.h"
 #include "WebServices.h"
 #include <vector>
+
+class ManagementSubservice;
 
 typedef struct _listElement
 {

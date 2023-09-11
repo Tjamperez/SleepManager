@@ -77,6 +77,14 @@ void ManagementSubservice::startElection()
     // Run the election
     std::vector<std::size_t> receivedMachineIDs; // Vector to store received machine IDs
     unsigned int allottedTimeMicros = 4000;
+
+    if (bind(sockfd, (struct sockaddr*)&myAddr, sizeof(myAddr)) == -1) 
+    {
+        //std::cerr << "Error binding socket at line " << __LINE__  << " of file " << __FILE__ << std::endl;
+        perror("Socket bind failed");
+        close(sockfd);
+        return;
+    }
     
         sendRequest.type = PTYPE_ELECTION_REQUEST;
         leaderFound.type = PTYPE_VICTORY_NOTIFICATION;
@@ -86,13 +94,6 @@ void ManagementSubservice::startElection()
         if (WebServices::sendBroadcast(sockfd, myAddr, sendRequest)) {
             // Receive and process responses from all participants
             receivedMachineIDs.clear(); // Clear the vector for each new election
-
-            if (bind(sockfd, (struct sockaddr*)&myAddr, sizeof(myAddr)) == -1) 
-            {
-                std::cerr << "Error binding socket" << std::endl;
-                close(sockfd);
-                return;
-            }
             WebServices::startTimer();
             
             while (inElection and !(WebServices::hasElapsed(allottedTimeMicros))) {

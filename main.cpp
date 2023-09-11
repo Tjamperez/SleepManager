@@ -100,5 +100,10 @@ int main(int argc, char* argv[])
     std::thread interfaceThread(&Interface::startInterface, &interface);
     std::thread replicationThread(&ReplicationSubservice::runLoop, &replication);
 
-    
+    discoveryThread.join();
+    monitoringThread.join();
+    interfaceThread.join();
+    replicationThread.join();
+
+    return 0;
 }
