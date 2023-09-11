@@ -67,7 +67,7 @@ basePacket listenForBroadcasts(int &sockfd, struct sockaddr_in client_addr,  soc
 
 }
 
-unsigned int ReplicationSubservice::copyNetwork(uint16_t version, std::vector<NetworkPC> &network)
+unsigned int ReplicationSubservice::copyNetwork(unsigned long long version, std::vector<NetworkPC> &network)
 {
     unsigned int networkS = network.size();
     if (networkS > pcList.size())
@@ -162,7 +162,7 @@ void ReplicationSubservice::run()
                 {
                     
                     packet.type = PTYPE_LIST_ELEMENT;
-                    packet.timestamp = uint16_t(listVersion);
+                    packet.timestamp = (unsigned long long)(listVersion);
                     serializePCListElement(pcList[i], packet);
                     std::cout << "Sending " << pcList[i].position << " IP:" << pcList[i].ip << " Version: " << listVersion <<".\n";
                     WebServices::sendBroadcast(sockfd, address, packet);
@@ -247,7 +247,7 @@ void ReplicationSubservice::run()
                 }
             }
             packet = WebServices::deserializePacket(buffer);
-            uint16_t newVersion = packet.timestamp;
+            unsigned long long newVersion = packet.timestamp;
 
             switch (packet.type)
             {
@@ -302,9 +302,9 @@ void ReplicationSubservice::run()
     return;
 }
 
-uint16_t ReplicationSubservice::getListVersion()
+unsigned long long ReplicationSubservice::getListVersion()
 {
-    uint16_t version = 0;
+    unsigned long long version = 0;
 
     for ( auto pcElem : pcList)
     {

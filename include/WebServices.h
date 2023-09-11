@@ -24,7 +24,7 @@
 
 #define TIMEOUT_MS 5
 #define BUFFER_SIZE 512
-#define PACKET_SIZE 132
+#define PACKET_SIZE 138
 #define SERVER_PORT 35000
 #define MONITOR_PORT 35005
 #define CLIENT_MONITOR_PORT 35008
@@ -36,7 +36,7 @@ PTYPE_SERVER_PROBE_RESP, PTYPE_LIST_SIZE, PTYPE_LIST_ELEMENT, PTYPE_ELEMENT_REQU
 extern std::vector<std::string> packetTypesNames;
  typedef struct __packet{
  uint16_t type; //Tipo do pacote
- uint16_t timestamp; // Timestamp do dado
+ unsigned long long timestamp; // Timestamp do dado
  char _payload[128]; //Dados da mensagem
  } basePacket;
 

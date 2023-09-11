@@ -24,7 +24,7 @@ char* WebServices::serializePacket(basePacket p)
     char* serializedData = new char[132];
 
     uint16_t type = htons(p.type);
-    uint16_t timestamp = htons(p.timestamp);
+    long long timestamp = htons(p.timestamp);
     memcpy(serializedData, &type, sizeof(uint16_t));
     memcpy(serializedData + sizeof(uint16_t), &timestamp, sizeof(uint16_t));
     memcpy(serializedData + 2 * sizeof(uint16_t), p._payload, 128);
@@ -36,8 +36,8 @@ basePacket WebServices::deserializePacket(char* serializedData) {
     basePacket p{};
 
     memcpy(&p.type, serializedData, sizeof(uint16_t));
-    memcpy(&p.timestamp, serializedData + sizeof(uint16_t), sizeof(uint16_t));
-    memcpy(p._payload, serializedData + 2 * sizeof(uint16_t), 128);
+    memcpy(&p.timestamp, serializedData + sizeof(uint16_t), sizeof(long long));
+    memcpy(p._payload, serializedData + sizeof(uint16_t) + sizeof(long long), 128);
 
     p.type = ntohs(p.type);
     p.timestamp = ntohs(p.timestamp);

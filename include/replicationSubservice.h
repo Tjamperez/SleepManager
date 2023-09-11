@@ -11,7 +11,7 @@ typedef struct _listElement
     char ip[32];
     char mac[32];
     int state;
-    uint16_t version;
+    unsigned long long version;
 } listElement;
 
 class ReplicationSubservice
@@ -22,7 +22,7 @@ class ReplicationSubservice
         void changeMode(bool newMode);
         void deactivate(){running = false;}
         void runLoop();
-        uint16_t getListVersion();
+        unsigned long long getListVersion();
 
         static void serializePCListElement(listElement elem, basePacket &packet);
         static listElement deserializePCListElement(basePacket &packet);
@@ -31,8 +31,8 @@ class ReplicationSubservice
     private:
         void run();
         void syncList();
-        unsigned int copyNetwork(uint16_t version,  std::vector<NetworkPC> &network);
-        uint16_t listVersion;
+        unsigned int copyNetwork(unsigned long long version,  std::vector<NetworkPC> &network);
+        unsigned long long listVersion;
         bool running = true;
         std::vector<listElement> pcList;
         ManagementSubservice* managementS;
