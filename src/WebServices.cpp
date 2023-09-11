@@ -210,13 +210,13 @@ bool WebServices::sendBroadcastElection(int sockfd, const struct sockaddr_in &se
     return true;
 }
 
-basePacket WebServices::waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutMs)
+basePacket WebServices::waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutUs)
 {
     basePacket response;
     response.type = PTYPE_NULL;
     struct timeval timeout;
-    timeout.tv_sec = timeOutMs / 1000;
-    timeout.tv_usec = (timeOutMs % 1000) * 1000;
+    timeout.tv_sec = timeOutUs / 1000000;
+    timeout.tv_usec = timeOutUs;
 
     fd_set readfds;
     FD_ZERO(&readfds);

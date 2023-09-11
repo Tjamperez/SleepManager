@@ -104,13 +104,9 @@ void ReplicationSubservice::syncList()
 
 void ReplicationSubservice::runLoop()
 {
-    running = true;
-    while (running)
+    while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
     {
-        if (!ManagementSubservice::inElection)
-        {
-            run();
-        }
+        run();
     }
 }
 
@@ -142,7 +138,7 @@ void ReplicationSubservice::run()
             basePacket packet;
 
             std::cout << "Started server replication.\n";
-            while (running && !ManagementSubservice::inElection)
+            while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
             {
                 listVersion += 1;
 
@@ -217,7 +213,7 @@ void ReplicationSubservice::run()
         char buffer[BUFFER_SIZE];
         socklen_t sz = sizeof(address);
             // receive list element
-        while (running && !ManagementSubservice::inElection)
+        while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
         {
             //std::cout << "Waiting for broadcast.\n";
             basePacket packet;

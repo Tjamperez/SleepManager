@@ -28,7 +28,7 @@ int MonitoringSubservice::runMonitoringServer()
 
     basePacket request;
     request.type = PTYPE_MONITOR_PROBE;
-    while (runMonitor == 1)
+    while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection && !ManagementSubservice::isClient)
     {
         std::vector<NetworkPC> network = ManagementSubservice::getNetwork();
         for (unsigned long int i = 0; i < network.size(); i++)
@@ -44,12 +44,12 @@ int MonitoringSubservice::runMonitoringServer()
             char* reqPacket = WebServices::serializePacket(request);
             ssize_t sent_bytes = sendto(sockfd, reqPacket, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
 
-            basePacket response = WebServices::waitForResponse(sockfd, client_addr, 2);
+            basePacket response = WebServices::waitForResponse(sockfd, client_addr, 500);
 
             if (response.type != PTYPE_MONITORING_PROBE_RESP)
             {
                 sent_bytes = sendto(sockfd, reqPacket, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
-                response = WebServices::waitForResponse(sockfd, client_addr, 2);
+                response = WebServices::waitForResponse(sockfd, client_addr, 500);
 
                 if (response.type != PTYPE_MONITORING_PROBE_RESP)
                 {
@@ -66,7 +66,7 @@ int MonitoringSubservice::runMonitoringServer()
             }
             //std::cerr << "PTYPE: " << packetTypesNames[response.type] << "\n";
         }
-        usleep(2000);
+        usleep(60);
     }
     basePacket shutdownPacket{};
     shutdownPacket.type = PTYPE_SERVER_SHUTDOWN;
@@ -95,7 +95,7 @@ int MonitoringSubservice::runMonitoringServer()
     inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
 
 
-    while (runMonitor)
+    /*while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
         {
             //Receber packet do server
             ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&client_addr, &client_len);
@@ -107,10 +107,10 @@ int MonitoringSubservice::runMonitoringServer()
 
                 if (sent_bytes < 0)
                     std::cerr << "sendto failed in client monitoring ss\n";
-                /*else
-                    std::cerr <<"Sent response packet.\n";*/
+                //else
+                //    std::cerr <<"Sent response packet.\n";
             }
-        }
+        }*/
 
 
 
@@ -121,7 +121,7 @@ int MonitoringSubservice::runMonitoringServer()
 }
 
 int MonitoringSubservice::runMonitoringSubservice(){
-    while (runMonitor)
+    while (!ManagementSubservice::shouldShutDown)
     {
         if (!ManagementSubservice::inElection)
         {
@@ -137,7 +137,6 @@ int MonitoringSubservice::runMonitoringSubservice(){
 
 int MonitoringSubservice::runMonitoringClient()
 {
-    runMonitor = 1;
     int sockfd;
     struct sockaddr_in myAddr;
     memset(&myAddr, 0, sizeof(myAddr));
@@ -152,10 +151,10 @@ int MonitoringSubservice::runMonitoringClient()
         exit(2);
     }
     char buffer[BUFFER_SIZE];
-    
+
     basePacket sendPack;
     sendPack.type = PTYPE_MONITORING_PROBE_RESP;
-    char* response = WebServices::serializePacket(sendPack);
+    char *response = WebServices::serializePacket(sendPack);
     struct sockaddr_in newServer;
     memset(&newServer, 0, sizeof(newServer));
     newServer.sin_family = AF_INET;
@@ -166,80 +165,162 @@ int MonitoringSubservice::runMonitoringClient()
 
     socklen_t server_len = sizeof(newServer);
 
+    // Receber packet do server
+    /*ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&newServer, &server_len);*/
 
-    while (runMonitor)
+    ///////////////////////////////////////
+
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
+
+    fd_set readSet;
+    FD_ZERO(&readSet);
+    FD_SET(sockfd, &readSet);
+
+    int enableBroadcast = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &enableBroadcast, sizeof(enableBroadcast)) < 0)
+    {
+        perror("setsockopt failed");
+        close(sockfd);
+        return 1;
+    }
+
+    timeval timeout;
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
+
+    basePacket received = WebServices::deserializePacket(buffer);
+
+    while (ManagementSubservice::isClient && !ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
+    {
+        fd_set tempSet = readSet;
+        int result = select(sockfd + 1, &tempSet, nullptr, nullptr, &timeout);
+        if (result == -1)
         {
-            //Receber packet do server
-            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&newServer, &server_len);
-
-            basePacket received = WebServices::deserializePacket(buffer);
-            if (received.type == PTYPE_SERVER_SHUTDOWN)
+            std::cerr << "select failed\n";
+            return 1;
+        }
+        else if (result == 0)
+        {
+            std::cout << "Listen time out\n";
+            break;
+        }
+        else
+        {
+            // Dados prontos
+            if (FD_ISSET(sockfd, &tempSet))
             {
-                std::cerr << "Server disconnecting.\n";
-                runMonitor = 0;
-                continue;
-            }
-            else if (received.type == PTYPE_MONITOR_PROBE)
-            {
-                if (inet_pton(AF_INET, IP.c_str(), &(newServer.sin_addr)) <= 0)
+                ssize_t num_bytes = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&newServer, &server_len);
+                if (num_bytes < 0)
                 {
-                    
-                    std::cerr << "Invalid IP address format.\n";
-                    close(sockfd);
+                    std::cerr << "recvfrom failed in listen for broadcasts\n";
                     return 1;
                 }
-                if (inet_pton(AF_INET, IPWeb.c_str(), &(WebServices::server_addr.sin_addr)) <= 0)
+                received = WebServices::deserializePacket(buffer);
+                if (received.type == PTYPE_SERVER_SHUTDOWN)
                 {
-                    
-                    std::cerr << "Invalid IP address format.\n";
-                    close(sockfd);
-                    return 1;
-                }
-                if(IP != IPWeb){
+                    std::cerr << "Server disconnecting.\n";
                     ManagementSubservice::startElection();
-                    return 1;
+                    continue;
                 }
-                    
-                ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
+                else if (received.type != PTYPE_MONITOR_PROBE)
+                {
+                    std::cout <<"Received\n";
+                    if (inet_pton(AF_INET, IP.c_str(), &(newServer.sin_addr)) <= 0)
+                    {
 
-                if (sent_bytes < 0)
-                    std::cerr << "sendto failed in client monitoring ss\n";
-                /*else
-                    std::cerr <<"Sent response packet.\n";*/
+                        std::cerr << "Invalid IP address format.\n";
+                        close(sockfd);
+                        return 1;
+                    }
+                    if (inet_pton(AF_INET, IPWeb.c_str(), &(WebServices::server_addr.sin_addr)) <= 0)
+                    {
+
+                        std::cerr << "Invalid IP address format.\n";
+                        close(sockfd);
+                        return 1;
+                    }
+                    if (IP != IPWeb)
+                    {
+                        std::cout << "Election started\n";
+                        ManagementSubservice::startElection();
+                        continue;
+                    }
+                    ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
+                    if (sent_bytes < 0)
+                    {
+                        perror("Error sending probe response");
+                    }
+                }
             }
         }
-    std::cout << "Stopped monitoring.\n";
 
-    sendPack.type = PTYPE_SERVER_PROBE;
-    char* reqPack = WebServices::serializePacket(sendPack);
-    int count = 0;
-    while (runMonitor)
+        ///////////////////////////////////////
+
+        /*basePacket received = WebServices::deserializePacket(buffer);
+        if (received.type == PTYPE_SERVER_SHUTDOWN)
         {
-            //Mandar packet pro server
-            ssize_t sent_bytes = sendto(sockfd, reqPack, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
-
-            basePacket response = WebServices::waitForResponse(sockfd, WebServices::server_addr, 2);
-            if (response.type == PTYPE_SERVER_SHUTDOWN)
+            std::cerr << "Server disconnecting.\n";
+            ManagementSubservice::startElection();
+            continue;
+        }
+        else if (received.type == PTYPE_MONITOR_PROBE)
+        {
+            if (inet_pton(AF_INET, IP.c_str(), &(newServer.sin_addr)) <= 0)
             {
-                std::cerr << "Server disconnecting.\n";
-                runMonitor = 0;
+
+                std::cerr << "Invalid IP address format.\n";
+                close(sockfd);
+                return 1;
+            }
+            if (inet_pton(AF_INET, IPWeb.c_str(), &(WebServices::server_addr.sin_addr)) <= 0)
+            {
+
+                std::cerr << "Invalid IP address format.\n";
+                close(sockfd);
+                return 1;
+            }
+            if(IP != IPWeb){
+                ManagementSubservice::startElection();
                 continue;
             }
-            else if(response.type != PTYPE_SERVER_PROBE_RESP && count == 3)
-            {
-                std::cerr << "Houston we have a problem.\n";
-                //Start election NOW!!!!!!
-                ManagementSubservice::startElection();
-            }
-            usleep(2000);
-            count++;
-        }
-    std::cout << "Finding Leader.\n";
+
+            ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
+
+            if (sent_bytes < 0)
+                std::cerr << "sendto failed in client monitoring ss\n";
+            //else
+            //    std::cerr <<"Sent response packet.\n";*/
+    }
     close(sockfd);
+    std::cout << "Stopped monitoring.\n";
     return 0;
 }
 
+/*sendPack.type = PTYPE_SERVER_PROBE;
+char* reqPack = WebServices::serializePacket(sendPack);
+int count = 0;
+while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
+    {
+        //Mandar packet pro server
+        ssize_t sent_bytes = sendto(sockfd, reqPack, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
 
+        basePacket response = WebServices::waitForResponse(sockfd, WebServices::server_addr, 2);
+        if (response.type == PTYPE_SERVER_SHUTDOWN)
+        {
+            std::cerr << "Server disconnecting.\n";
+            break;
+        }
+        else if(response.type != PTYPE_SERVER_PROBE_RESP && count == 3)
+        {
+            std::cerr << "Houston we have a problem.\n";
+            //Start election NOW!!!!!!
+            ManagementSubservice::startElection();
+        }
+        usleep(2000);
+        count++;
+    }
+std::cout << "Finding Leader.\n";*/
 
 void MonitoringSubservice::shutDown()
 {

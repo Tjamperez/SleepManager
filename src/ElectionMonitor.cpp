@@ -2,7 +2,7 @@
 
 ElectionMonitor::ElectionMonitor()
 {
-    
+
 }
 
 void ElectionMonitor::electionMonitoring()
@@ -17,10 +17,10 @@ void ElectionMonitor::electionMonitoring()
     socklen_t client_len = sizeof(election_addr);
     char buffer[BUFFER_SIZE];
 
-    while(true){
+    while(!ManagementSubservice::shouldShutDown){
 
         if(!ManagementSubservice::inElection){
-            basePacket electionPacket = WebServices::waitForResponse(sockfd, election_addr, 4);
+            basePacket electionPacket = WebServices::waitForResponse(sockfd, election_addr, 4000);
             if(electionPacket.type == PTYPE_ELECTION_REQUEST){
                 ManagementSubservice::startElection();
             }

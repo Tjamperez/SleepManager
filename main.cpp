@@ -103,11 +103,14 @@ int main(int argc, char* argv[])
     //std::thread electionMonitoringThread(&ElectionMonitor::electionMonitoring, &election_monitoring);
 
     interface.startInterface();
-
+    std::cout << "INF J\n";
     discoveryThread.join();
+    std::cout << "DSC J\n";
     monitoringThread.join();
+    std::cout << "MNT J\n";
     //interfaceThread.join();
     replicationThread.join();
+    std::cout << "REP J\n";
     //electionMonitoringThread.join();
 
     return 0;

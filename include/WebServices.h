@@ -52,7 +52,7 @@ class WebServices
     static std::string networkInterface;
     static bool sendBroadcast(int sockfd, const struct sockaddr_in &server_addr, basePacket p);
     static bool sendBroadcastElection(int sockfd, const struct sockaddr_in &server_addr, basePacket p, const std::string& machineID);
-    static basePacket waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutMs);
+    static basePacket waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutUs);
     static bool initializeSocket(int &sockfd, const struct sockaddr_in &server_addr);
     static char* serializePacket(basePacket p);
     static basePacket deserializePacket(char* serializedData);

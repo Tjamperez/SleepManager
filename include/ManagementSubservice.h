@@ -31,9 +31,11 @@ class ManagementSubservice
         static void setRepManager(ReplicationSubservice *value){
             RepManager = value;
         };
+        static void shutDown(){shouldShutDown = true;}
 
         static bool isClient;
         static bool inElection;
+        static bool shouldShutDown;
         static basePacket waitForBroadcasts(int sockfd, struct sockaddr_in client_addr, socklen_t& client_len, int timeoutInSeconds);
     protected:
         static std::vector<NetworkPC> network;

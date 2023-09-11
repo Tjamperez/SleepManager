@@ -6,6 +6,7 @@ std::vector<NetworkPC> ManagementSubservice::network = {};
 std::mutex ManagementSubservice::networkMutex;
 bool ManagementSubservice::isClient = true;
 bool ManagementSubservice::inElection = false;
+bool ManagementSubservice::shouldShutDown = false;
 ReplicationSubservice *ManagementSubservice::RepManager = nullptr;
 std::chrono::high_resolution_clock::time_point WebServices::startTime;
 
@@ -98,7 +99,7 @@ void ManagementSubservice::startElection()
             WebServices::startTimer();
             
             while (inElection and !(WebServices::hasElapsed(allottedTimeMicros))) {
-                basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 4);
+                basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 4000);
                
                 std::cout << ("receivedPacket\n");
                 if (receivedPacket.type == PTYPE_NULL) {
@@ -129,7 +130,7 @@ void ManagementSubservice::startElection()
                         }
                         else{
                         //wait for leader
-                            basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 4);
+                            basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 4000);
                             if (receivedPacket.type == PTYPE_VICTORY_NOTIFICATION){
                                 WebServices::server_addr = receptorAddr;
                             }

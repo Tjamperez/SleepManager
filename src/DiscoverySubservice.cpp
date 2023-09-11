@@ -17,7 +17,7 @@ DiscoverySubservice::~DiscoverySubservice()
 
 int DiscoverySubservice::run()
 {
-    while (runDiscovery)
+    while (!ManagementSubservice::shouldShutDown)
     {
         if (!ManagementSubservice::inElection)
         {
@@ -40,7 +40,6 @@ int DiscoverySubservice::run()
 
 int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in client_addr,  socklen_t &client_len, char* buffer, size_t buffSize)
 {
-    runDiscovery = 1;
     basePacket sendPack;
     sendPack.type = PTYPE_DISCOVERY_ACK;
 
@@ -63,7 +62,7 @@ int DiscoverySubservice::listenForBroadcasts(int &sockfd, struct sockaddr_in cli
     timeout.tv_sec = 0;
     timeout.tv_usec = 5000;
 
-    while (!ManagementSubservice::isClient && runDiscovery)
+    while (!ManagementSubservice::isClient && !ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
     {
         memset(buffer, 0, buffSize);
         /*ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&client_addr, &client_len);
@@ -159,7 +158,6 @@ int DiscoverySubservice::InitializeServer()
 
 int DiscoverySubservice::InitializeClient()
 {
-    runDiscovery = 1;
     int sockfd;
     //socklen_t server_len = sizeof(server_addr);
 
@@ -200,13 +198,13 @@ int DiscoverySubservice::InitializeClient()
     int count = 0;
 
     // Espera o server responder
-    while (!serverFound && ManagementSubservice::isClient && runDiscovery)
+    while (!serverFound && ManagementSubservice::isClient && !ManagementSubservice::shouldShutDown)
     {
         // Mandar pacote de broadcast
         if (WebServices::sendBroadcast(sockfd, WebServices::server_addr, p))
         {
             // Esperar resposta do server
-            rtPacket = WebServices::waitForResponse(sockfd, WebServices::server_addr, 2);
+            rtPacket = WebServices::waitForResponse(sockfd, WebServices::server_addr, 1000);
             if (rtPacket.type == PTYPE_DISCOVERY_ACK)
             {
                 serverFound = true;

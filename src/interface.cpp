@@ -16,10 +16,14 @@ Interface::~Interface()
 
 void Interface::startInterface()
 {
-    if (!ManagementSubservice::isClient)
-        interfaceLoop();
-    else
-        clientInterfaceLoop();
+    while (!ManagementSubservice::shouldShutDown)
+    {
+        if (!ManagementSubservice::isClient)
+            interfaceLoop();
+        else
+            clientInterfaceLoop();
+    }
+    std::cout << "Exiting interface\n";
 }
 
 void Interface::listNetworkPCs()
@@ -47,27 +51,25 @@ void Interface::listNetworkPCs()
 void signalHandler(int signal) {
     if (signal == SIGINT) {
         std::cout << "\nReceived Ctrl+C. Exiting gracefully..." << std::endl;
-        DiscoverySubservice::shutDown();
-        MonitoringSubservice::shutDown();
+        ManagementSubservice::shutDown();
+        usleep(200);
         exit(0);
     }
 }
 
 void Interface::interfaceLoop()
 {
-    runInterface = 1;
 
     signal(SIGINT, signalHandler);
 
-    while (runInterface) {
+    while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::isClient) {
         std::string commandStr = "";
 
         // Check for EOF (Ctrl+D) to handle end-of-input
         if (!std::getline(std::cin, commandStr)) {
             if (std::cin.eof()) {
                 std::cout << "\nReceived Ctrl+D. Exiting gracefully..." << std::endl;
-                DiscoverySubservice::shutDown();
-                MonitoringSubservice::shutDown();
+                ManagementSubservice::shutDown();
                 runInterface = 0;
                 break;
             }
@@ -91,9 +93,7 @@ void Interface::interfaceLoop()
             ManagementSubservice::awakePC((unsigned long int)std::stoi(command.argv[0]));
             break;
         case CMD_QUIT:
-            DiscoverySubservice::shutDown();
-            MonitoringSubservice::shutDown();
-            runInterface = 0;
+            ManagementSubservice::shutDown();
             break;
         }
     }
@@ -101,8 +101,7 @@ void Interface::interfaceLoop()
 
 void Interface::clientInterfaceLoop()
 {
-    runInterface = 1;
-    while (runInterface)
+    while (!ManagementSubservice::shouldShutDown && ManagementSubservice::isClient)
     {
         signal(SIGINT, signalHandler);
 
@@ -111,9 +110,7 @@ void Interface::clientInterfaceLoop()
         if (!std::getline(std::cin, commandStr)) {
             if (std::cin.eof()) {
                 std::cout << "\nReceived Ctrl+D. Exiting gracefully..." << std::endl;
-                DiscoverySubservice::shutDown();
-                MonitoringSubservice::shutDown();
-                runInterface = 0;
+                ManagementSubservice::shutDown();
                 break;
             }
             else {
