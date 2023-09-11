@@ -21,13 +21,13 @@ WebServices::~WebServices()
 
 char* WebServices::serializePacket(basePacket p)
 {
-    char* serializedData = new char[132];
+    char* serializedData = new char[138];
 
     uint16_t type = htons(p.type);
     long long timestamp = htons(p.timestamp);
     memcpy(serializedData, &type, sizeof(uint16_t));
-    memcpy(serializedData + sizeof(uint16_t), &timestamp, sizeof(uint16_t));
-    memcpy(serializedData + 2 * sizeof(uint16_t), p._payload, 128);
+    memcpy(serializedData + sizeof(uint16_t), &timestamp, sizeof(long long));
+    memcpy(serializedData + sizeof(uint16_t) + sizeof(long long), p._payload, 128);
 
     return serializedData;
 }

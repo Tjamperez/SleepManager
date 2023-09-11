@@ -1,6 +1,12 @@
 #include "ElectionMonitor.h"
 
-void electionMonitoring(){
+ElectionMonitor::ElectionMonitor()
+{
+    
+}
+
+void ElectionMonitor::electionMonitoring()
+{
     int sockfd = 0;
     struct sockaddr_in election_addr;
     memset(&election_addr, 0, sizeof(election_addr));

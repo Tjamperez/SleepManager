@@ -82,6 +82,7 @@ void ManagementSubservice::startElection()
     {
         //std::cerr << "Error binding socket at line " << __LINE__  << " of file " << __FILE__ << std::endl;
         perror("Socket bind failed");
+        std::cerr << "At line " << __LINE__ << " in file " << __FILE__ << "\n"; 
         close(sockfd);
         return;
     }

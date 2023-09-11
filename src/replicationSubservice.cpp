@@ -92,7 +92,7 @@ void ReplicationSubservice::syncList()
 {
     unsigned int pcListSize = pcList.size();
     std::vector<NetworkPC> newList(pcListSize);
-    
+    listVersion = pcListSize > 0 ? pcList[0].version : listVersion;
     for (unsigned int i = 0; i < pcListSize; i++)
     {
         NetworkPC syncPC(pcList[i].ip, pcList[i].mac);
@@ -173,8 +173,7 @@ void ReplicationSubservice::run()
                 WebServices::sendBroadcast(sockfd, address, packet);
                 usleep(200);
             }
-
-            // send list end
+            close(sockfd);
     }
     else
     {
@@ -210,7 +209,8 @@ void ReplicationSubservice::run()
         timeout.tv_usec = 5000;
         if (bind(sockfd, (struct sockaddr*)&address, sizeof(address)) == -1) 
         {
-            std::cerr << "Error binding socket" << std::endl;
+            perror("Socket bind failed");
+            std::cerr << "At line" << __LINE__ << " in file " << __FILE__ << std::endl;
             close(sockfd);
             return;
         }
@@ -299,17 +299,13 @@ void ReplicationSubservice::run()
             break;
             }
         }
+        std::cout << "Exiting replication client\n";
+        close(sockfd);
     }
     return;
 }
 
 unsigned long long ReplicationSubservice::getListVersion()
 {
-    unsigned long long version = 0;
-
-    for ( auto pcElem : pcList)
-    {
-        version = pcElem.version < version ? pcElem.version : version;
-    }
-    return version;
+    return listVersion;
 }

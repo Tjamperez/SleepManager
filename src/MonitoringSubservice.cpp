@@ -147,6 +147,7 @@ int MonitoringSubservice::runMonitoringClient()
 
     if (WebServices::initializeSocket(sockfd, myAddr))
     {
+        perror("Couldn't initialize client monitoring socket");
         std::cerr << "Client monitor error.\n";
         exit(2);
     }
@@ -234,7 +235,7 @@ int MonitoringSubservice::runMonitoringClient()
             count++;
         }
     std::cout << "Finding Leader.\n";
-
+    close(sockfd);
     return 0;
 }
 

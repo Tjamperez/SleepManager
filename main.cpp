@@ -99,15 +99,32 @@ int main(int argc, char* argv[])
     //começa a rodar todos os serviços nas threads, como cliente
     std::thread discoveryThread(&DiscoverySubservice::run, &discovery);
     std::thread monitoringThread(&MonitoringSubservice::runMonitoringSubservice, &monitoring);
-    std::thread interfaceThread(&Interface::startInterface, &interface);
     std::thread replicationThread(&ReplicationSubservice::runLoop, &replication);
-    std::thread electionMonitoringThread(&ElectionMonitor::electionMonitoring, &election_monitoring);
+    //std::thread electionMonitoringThread(&ElectionMonitor::electionMonitoring, &election_monitoring);
+
+    interface.startInterface();
 
     discoveryThread.join();
     monitoringThread.join();
-    interfaceThread.join();
+    //interfaceThread.join();
     replicationThread.join();
-    electionMonitoringThread.join();
+    //electionMonitoringThread.join();
 
     return 0;
 }
+
+/*int main(int argc, char* argv[])
+{
+    if (argc > 1)
+    {
+        if (strcmp(argv[1], "server") == 0)
+        {
+            ManagementSubservice::isClient = false;
+        }
+    }
+    ManagementSubservice::AddPCToNetwork("ASSASS", "POOPOO");
+    ManagementSubservice::AddPCToNetwork("COOCOO", "BABABA");
+    ManagementSubservice::AddPCToNetwork("NACACA", "ISISISI");
+    ReplicationSubservice replication;
+    replication.runLoop();
+}*/
