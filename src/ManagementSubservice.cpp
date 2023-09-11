@@ -118,7 +118,7 @@ void ManagementSubservice::startElection()
                         char senderIP[INET_ADDRSTRLEN];
                         inet_ntop(AF_INET, &(myAddr.sin_addr), senderIP, INET_ADDRSTRLEN);
                         
-                        if (strcmp(WebServices::getIPAddress().c_str(), senderIp) == 0)
+                        if (strcmp(WebServices::getIPAddress().c_str(), senderIP) == 0)
                         {
                             continue;
                         }
@@ -164,7 +164,7 @@ void ManagementSubservice::startElection()
         if (waitingForLeader)
         {
             basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 80);
-            if (receivedPacket == PTYPE_VICTORY_NOTIFICATION)
+            if (receivedPacket.type == PTYPE_VICTORY_NOTIFICATION)
             {
                 WebServices::server_addr = receptorAddr;
                 std::cout << "Received leader\n";
@@ -231,7 +231,6 @@ void ManagementSubservice::startElection()
         //receber e enviar mensagens para decidir quem é o eleito
     }
 }*/
-}
 
 basePacket ManagementSubservice::waitForBroadcasts(int sockfd, sockaddr_in client_addr, socklen_t &client_len, int timeoutInSeconds)
 {
