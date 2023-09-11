@@ -151,15 +151,25 @@ int MonitoringSubservice::runMonitoringClient()
         exit(2);
     }
     char buffer[BUFFER_SIZE];
-    socklen_t server_len = sizeof(WebServices::server_addr);
-
+    
     basePacket sendPack;
     sendPack.type = PTYPE_MONITORING_PROBE_RESP;
     char* response = WebServices::serializePacket(sendPack);
+    struct sockaddr_in newServer;
+    memset(&newServer, 0, sizeof(newServer));
+    newServer.sin_family = AF_INET;
+    newServer.sin_addr.s_addr = htonl(INADDR_ANY);
+    newServer.sin_port = htons(CLIENT_MONITOR_PORT);
+    std::string IP;
+    std::string IPWeb;
+
+    socklen_t server_len = sizeof(newServer);
+
+
     while (runMonitor)
         {
             //Receber packet do server
-            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&WebServices::server_addr, &server_len);
+            ssize_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&newServer, &server_len);
 
             basePacket received = WebServices::deserializePacket(buffer);
             if (received.type == PTYPE_SERVER_SHUTDOWN)
@@ -170,6 +180,25 @@ int MonitoringSubservice::runMonitoringClient()
             }
             else if (received.type == PTYPE_MONITOR_PROBE)
             {
+                if (inet_pton(AF_INET, IP.c_str(), &(newServer.sin_addr)) <= 0)
+                {
+                    
+                    std::cerr << "Invalid IP address format.\n";
+                    close(sockfd);
+                    return 1;
+                }
+                if (inet_pton(AF_INET, IPWeb.c_str(), &(WebServices::server_addr.sin_addr)) <= 0)
+                {
+                    
+                    std::cerr << "Invalid IP address format.\n";
+                    close(sockfd);
+                    return 1;
+                }
+                if(IP != IPWeb){
+                    ManagementSubservice::startElection();
+                    return 1;
+                }
+                    
                 ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
 
                 if (sent_bytes < 0)
@@ -199,7 +228,7 @@ int MonitoringSubservice::runMonitoringClient()
             {
                 std::cerr << "Houston we have a problem.\n";
                 //Start election NOW!!!!!!
-                //startElection();
+                ManagementSubservice::startElection();
             }
             usleep(2000);
             count++;
@@ -208,6 +237,8 @@ int MonitoringSubservice::runMonitoringClient()
 
     return 0;
 }
+
+
 
 void MonitoringSubservice::shutDown()
 {

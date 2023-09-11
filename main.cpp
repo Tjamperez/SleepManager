@@ -14,6 +14,7 @@
 #include "DiscoverySubservice.h"
 #include "MonitoringSubservice.h"
 #include "replicationSubservice.h"
+#include "ElectionMonitor.h"
 
 bool clRun = true;
 
@@ -86,6 +87,7 @@ int main(int argc, char* argv[])
     MonitoringSubservice monitoring;
     Interface interface;
     ReplicationSubservice replication;
+    ElectionMonitor election_monitoring;
 	ManagementSubservice::setRepManager(&replication);
 
     if (argc == 2)
@@ -99,11 +101,13 @@ int main(int argc, char* argv[])
     std::thread monitoringThread(&MonitoringSubservice::runMonitoringSubservice, &monitoring);
     std::thread interfaceThread(&Interface::startInterface, &interface);
     std::thread replicationThread(&ReplicationSubservice::runLoop, &replication);
+    std::thread electionMonitoringThread(&ElectionMonitor::electionMonitoring, &election_monitoring);
 
     discoveryThread.join();
     monitoringThread.join();
     interfaceThread.join();
     replicationThread.join();
+    electionMonitoringThread.join();
 
     return 0;
 }
