@@ -102,13 +102,13 @@ void ManagementSubservice::startElection()
             {
                 basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 80);
                
-                std::cout << ("receivedPacket\n");
                 if (receivedPacket.type == PTYPE_NULL) 
                 {
                     continue; 
                 } 
                 else if (receivedPacket.type == PTYPE_ELECTION_RESPONSE) 
                 {
+                    std::cout << ("receivedPacket\n");
                     // Extract the sender's hashed IP address from the socket
                     memcpy(&version,receivedPacket._payload,sizeof(unsigned long long));
 
