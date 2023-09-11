@@ -58,9 +58,14 @@ class WebServices
     static basePacket deserializePacket(char* serializedData);
     static std::string getMACAddress();
     static std::string getIPAddress();
+	static void startTimer(); // Start the timer
+    static bool hasElapsed(unsigned int microseconds); // Check if elapsed time exceeds a threshold
     protected:
-
+	
     private:
+	static std::chrono::high_resolution_clock::time_point startTime;
+
+    
 };
 
 #endif // WEBSERVICES_H
