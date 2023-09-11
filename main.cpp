@@ -86,12 +86,14 @@ int main(int argc, char* argv[])
     MonitoringSubservice monitoring;
     Interface interface;
     ReplicationSubservice replication;
+	ManagementSubservice::setRepManager(&replication);
 
     if (argc == 2)
     {
         WebServices::networkInterface = std::string(argv[1]);   
     }
-
+	
+	ManagementSubservice::AddPCToNetwork(WebServices::getIPAddress(),WebServices::getMACAddress());
     //começa a rodar todos os serviços nas threads, como cliente
     std::thread discoveryThread(&DiscoverySubservice::run, &discovery);
     std::thread monitoringThread(&MonitoringSubservice::runMonitoringSubservice, &monitoring);

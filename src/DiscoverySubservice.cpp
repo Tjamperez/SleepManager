@@ -214,6 +214,7 @@ int DiscoverySubservice::InitializeClient()
         if(serverFound == false && count == 3)
             {
                //mandar management iniciar eleição
+			   ManagementSubservice::startElection();//mandar management iniciar eleição
             } 
     }
 

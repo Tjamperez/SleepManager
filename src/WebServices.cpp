@@ -168,6 +168,17 @@ std::string getMACAddress()
     }
     return mac_address;
 }*/
+void WebServices::startTimer() {
+    startTime = std::chrono::high_resolution_clock::now();
+}
+
+// Check if elapsed time has exceeded the threshold (in microseconds)
+bool WebServices::hasElapsed(unsigned int microseconds) {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
+
+    return elapsedTime.count() >= microseconds;
+}
 
 
 bool WebServices::sendBroadcast(int sockfd, const struct sockaddr_in &sendAddr, basePacket p)
