@@ -68,7 +68,7 @@ void ManagementSubservice::startElection()
     std::string localIP = WebServices::getIPAddress();
     std::size_t machineID = std::hash<std::string>{}(localIP);
     std::string machineIDString = std::to_string(machineID);
-    std::vector<std::size_t> versionVector;
+    //std::vector<std::size_t> versionVector;
     socklen_t myAddr_len = sizeof(myAddr);
     basePacket sendRequest,leaderFound;
     inElection = true;
@@ -87,69 +87,89 @@ void ManagementSubservice::startElection()
         close(sockfd);
         return;
     }
-    
+    bool waitingForLeader = false;
         sendRequest.type = PTYPE_ELECTION_REQUEST;
         leaderFound.type = PTYPE_VICTORY_NOTIFICATION;
         unsigned long long version = RepManager->getListVersion();
         memcpy(leaderFound._payload,&version,sizeof(unsigned long long)); // if this is the leader it will have the version saved
         memcpy(sendRequest._payload,&version,sizeof(unsigned long long));
-        if (WebServices::sendBroadcast(sockfd, myAddr, sendRequest)) {
+        if (WebServices::sendBroadcast(sockfd, myAddr, sendRequest)) 
+        {
             // Receive and process responses from all participants
             receivedMachineIDs.clear(); // Clear the vector for each new election
             WebServices::startTimer();
-            
-            while (inElection and !(WebServices::hasElapsed(allottedTimeMicros))) {
-                basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 4000);
+            while (inElection and !(WebServices::hasElapsed(allottedTimeMicros))) 
+            {
+                basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 80);
                
                 std::cout << ("receivedPacket\n");
-                if (receivedPacket.type == PTYPE_NULL) {
-                    break;  // No more responses
-                } else if (receivedPacket.type == PTYPE_ELECTION_RESPONSE) {
+                if (receivedPacket.type == PTYPE_NULL) 
+                {
+                    continue; 
+                } 
+                else if (receivedPacket.type == PTYPE_ELECTION_RESPONSE) 
+                {
                     // Extract the sender's hashed IP address from the socket
                     memcpy(&version,receivedPacket._payload,sizeof(unsigned long long));
 
-                    if(RepManager->getListVersion() == version){
-                        versionVector.push_back(version);
-                    }
-
-                    char senderIP[INET_ADDRSTRLEN];
-                    inet_ntop(AF_INET, &(myAddr.sin_addr), senderIP, INET_ADDRSTRLEN);
-
-                    // Hash the sender's IP address
-                    std::size_t senderMachineID = std::hash<std::string>{}(senderIP);
-
-                    // Store the received machine ID in the vector
-                    receivedMachineIDs.push_back(senderMachineID);
-                }
-
-                if(RepManager->getListVersion() > version){
-                    std::vector<NetworkPC> network = ManagementSubservice::getNetwork();
-                    for (unsigned long int i = 0; i < network.size(); i++)
+                    if(RepManager->getListVersion() == version)
+                    {
+                        //versionVector.push_back(version);
+                        char senderIP[INET_ADDRSTRLEN];
+                        inet_ntop(AF_INET, &(myAddr.sin_addr), senderIP, INET_ADDRSTRLEN);
+                        
+                        if (strcmp(WebServices::getIPAddress().c_str(), senderIp) == 0)
                         {
-                        if((machineID > std::hash<std::string>{}(network[i].getIP())) && (RepManager->getListVersion() == RepManager->getListVersion())){
+                            continue;
                         }
-                        else{
-                        //wait for leader
-                            basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 4000);
-                            if (receivedPacket.type == PTYPE_VICTORY_NOTIFICATION){
-                                WebServices::server_addr = receptorAddr;
-                            }
-                            
-                            return;
-                        }
+                        // Hash the sender's IP address
+                        std::size_t senderMachineID = std::hash<std::string>{}(senderIP);
+
+                        // Store the received machine ID in the vector
+                        receivedMachineIDs.push_back(senderMachineID);
                     }
-                    
-                    //se saiu aqui é lider
-                    
+                    else if (RepManager->getListVersion() < version)
+                    {
+                        waitingForLeader = true;
+                        break;
+                    }
+                }
+            }       
+        }
+            //usleep(600);
+        
+        
+        if (!waitingForLeader)
+        {
+            for (unsigned int i = 0; i < receivedMachineIDs.size(); i++)
+            {
+                if (receivedMachineIDs[i] > machineID)
+                {
+                    waitingForLeader = true;
                 }
             }
-            usleep(100);
-            if(WebServices::sendBroadcast(sockfd, myAddr, leaderFound)){
-                        if(version == (RepManager->getListVersion())){
-                            isClient = false;
-                            inElection = false;
-                        }
-            };
+            if (!waitingForLeader)
+            {
+                std::cout << "Setting self as server\n";
+                if(WebServices::sendBroadcast(sockfd, myAddr, leaderFound))
+                {
+                    if(version == (RepManager->getListVersion()))
+                    {
+                        isClient = false;
+                        inElection = false;
+                    }
+                }
+            }
+        }
+        if (waitingForLeader)
+        {
+            basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 80);
+            if (receivedPacket == PTYPE_VICTORY_NOTIFICATION)
+            {
+                WebServices::server_addr = receptorAddr;
+                std::cout << "Received leader\n";
+            }
+        }
 
             // After processing all responses, determine the outcome of the election
             // by finding the highest machine ID among the received responses.
@@ -170,7 +190,7 @@ void ManagementSubservice::startElection()
             } */
 
             // Continue with the rest of your code for the election algorithm
-    }
+}
 
 /* void ManagementSubservice::startElection()
 {
