@@ -9,6 +9,8 @@ class ElectionMonitor{
     public:
         ElectionMonitor();
         void electionMonitoring(); 
+        static int elmSockfd;
+        static struct sockaddr_in election_addr;
     private:
 
 };

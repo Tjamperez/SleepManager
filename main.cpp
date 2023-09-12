@@ -97,10 +97,10 @@ int main(int argc, char* argv[])
 	
 	ManagementSubservice::AddPCToNetwork(WebServices::getIPAddress(),WebServices::getMACAddress());
     //começa a rodar todos os serviços nas threads, como cliente
+    std::thread electionMonitoringThread(&ElectionMonitor::electionMonitoring, &election_monitoring);
     std::thread discoveryThread(&DiscoverySubservice::run, &discovery);
     std::thread monitoringThread(&MonitoringSubservice::runMonitoringSubservice, &monitoring);
     std::thread replicationThread(&ReplicationSubservice::runLoop, &replication);
-    std::thread electionMonitoringThread(&ElectionMonitor::electionMonitoring, &election_monitoring);
 
     interface.startInterface();
     std::cout << "INF J\n";

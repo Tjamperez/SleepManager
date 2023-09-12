@@ -92,11 +92,16 @@ void Interface::interfaceLoop()
             listNetworkPCs();
             break;
         case CMD_AWAKE:
-            ManagementSubservice::awakePC((unsigned long int)std::stoi(command.argv[0]));
+            if (!ManagementSubservice::isClient)
+                ManagementSubservice::awakePC((unsigned long int)std::stoi(command.argv[0]));
+            else
+                std::cout << "Command unknown.\n";
             break;
         case CMD_QUIT:
             ManagementSubservice::shutDown();
             break;
+        case CMD_ELECTION:
+            ManagementSubservice::startElection();
         }
     }
 }
@@ -187,6 +192,13 @@ icmd Interface::parseCommand(const std::string &commandStr)
         else
         {
             std::cout << "Quit doesn't take any arguments.\n";
+        }
+    }
+    else if (cmdTks[0] == "election")
+    {
+        if (cmdTks.size() == 1)
+        {
+            command.cmdType = CMD_ELECTION;
         }
     }
     return command;

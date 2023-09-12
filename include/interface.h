@@ -9,7 +9,7 @@
 #include <vector>
 #include <sstream>
 
-enum interfaceCommand {CMD_UNKNOWN, CMD_LIST, CMD_AWAKE, CMD_QUIT};
+enum interfaceCommand {CMD_UNKNOWN, CMD_LIST, CMD_AWAKE, CMD_QUIT, CMD_ELECTION};
 
 typedef struct _cmd
 {

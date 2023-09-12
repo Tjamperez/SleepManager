@@ -243,7 +243,7 @@ basePacket WebServices::waitForResponse(int sockfd, struct sockaddr_in server_ad
             ssize_t received_bytes = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&response_addr, &response_len);
             if (received_bytes < 0)
             {
-                std::cerr << "recvfrom failed\n";
+                perror("recvfrom failed in wait for response");
                 return response;
             }
 
