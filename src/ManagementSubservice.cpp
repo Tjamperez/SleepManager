@@ -434,7 +434,12 @@ int ManagementSubservice::awakePC(unsigned long int index)
 
     for (int i = 6; i < 102; i += 6)
     {
-        memcpy(packet + i, MAC.c_str(), 6);
+        // Mudar os dígitos em hex para um número
+        for (int j = 0; j < 6; ++j)
+        {
+            std::string byteStr = MAC.substr(j * 2, 2);
+            magicPacket[i + j] = static_cast<unsigned char>(std::stoi(byteStr, 0, 16));
+        }
     }
 
     // Mandar pacote mágico
