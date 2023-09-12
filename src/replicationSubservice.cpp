@@ -275,7 +275,7 @@ void ReplicationSubservice::run()
                 //std::cout << "Received element " << element.position << " with ip: " << element.ip << " Version:" << element.version << "\n";
             if (position < pcList.size())
             {
-                if (pcList[position].version < newVersion || (pcList[position].version > 65000 && newVersion < 200))
+                if (pcList[position].version < newVersion)
                 {
                     element.version = newVersion;
                     pcList[position] = element;
