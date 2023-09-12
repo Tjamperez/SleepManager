@@ -1,7 +1,7 @@
 #include "WebServices.h"
 
-std::vector<std::string> packetTypesNames = {"PTYPE_NULL", "PTYPE_DISCOVERY", "PTYPE_DISCOVERY_ACK", "PTYPE_SSR", "PTYPE_SSR_RESP", "PTYPE_SERVER_SHUTDOWN",
-"PTYPE_ELECTION_REQUEST","PTYPE_ELECTION_RESPONSE","PTYPE_VICTORY_NOTIFICATION"};
+std::vector<std::string> packetTypesNames = {"PTYPE_NULL", "PTYPE_DISCOVERY", "PTYPE_DISCOVERY_ACK", "PTYPE_MONITOR_PROBE", "PTYPE_MONITORING_PROBE_RESP", "PTYPE_SERVER_SHUTDOWN","PTYPE_SERVER_PROBE",
+"PTYPE_SERVER_PROBE_RESP", "PTYPE_LIST_SIZE", "PTYPE_LIST_ELEMENT", "PTYPE_ELEMENT_REQUEST", "PTYPE_LIST_END","PTYPE_ELECTION_REQUEST","PTYPE_ELECTION_RESPONSE","PTYPE_VICTORY_NOTIFICATION"};
 
 struct sockaddr_in WebServices::server_addr = {};
 
@@ -210,7 +210,7 @@ bool WebServices::sendBroadcastElection(int sockfd, const struct sockaddr_in &se
     return true;
 }
 
-basePacket WebServices::waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutUs)
+basePacket WebServices::waitForResponse(int sockfd, struct sockaddr_in server_addr,long timeOutUs, struct sockaddr_in* resp)
 {
     basePacket response;
     response.type = PTYPE_NULL;
@@ -251,6 +251,8 @@ basePacket WebServices::waitForResponse(int sockfd, struct sockaddr_in server_ad
             response = deserializePacket(buffer);
             /*std::cout << "Received response from server\n";
             std::cout << "Type: " << packetTypesNames[response.type] << "\n";*/
+            if (resp != nullptr)
+                *resp = response_addr;
             return response;
         }
     }
@@ -278,7 +280,7 @@ bool WebServices::initializeSocket(int &sockfd, const struct sockaddr_in &server
 
     if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
     {
-        std::cerr << "bind failed\n";
+        perror("Bind failed");
         return 1;
     }
     return 0;

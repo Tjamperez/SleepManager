@@ -18,19 +18,19 @@ void Interface::startInterface()
 {
     while (!ManagementSubservice::shouldShutDown)
     {
-        if (!ManagementSubservice::isClient)
+        //if (!ManagementSubservice::isClient)
             interfaceLoop();
-        else
-            clientInterfaceLoop();
+        //else
+        //    clientInterfaceLoop();
     }
     std::cout << "Exiting interface\n";
 }
 
 void Interface::listNetworkPCs()
 {
-    //std::cout << "Is the mutex locked?\n";
+    std::cout << "Is the mutex locked?\n";
     std::vector<NetworkPC> network = ManagementSubservice::getNetwork();
-    //std::cout << "Not anymore!\n";
+    std::cout << "Not anymore!\n";
     for(long unsigned int i = 0; i < network.size(); i++)
     {
         std::cout << "Index: " << i << "\tIP: " << network[i].getIP() << "\tMAC: " << network[i].getMAC() << "\tStatus: ";
@@ -62,7 +62,9 @@ void Interface::interfaceLoop()
 
     signal(SIGINT, signalHandler);
 
-    while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::isClient) {
+    std::cout << "Starting interface\n";
+
+    while (!ManagementSubservice::shouldShutDown) {
         std::string commandStr = "";
 
         // Check for EOF (Ctrl+D) to handle end-of-input
@@ -86,7 +88,7 @@ void Interface::interfaceLoop()
         case CMD_UNKNOWN:
             std::cout << "Command unknown.\n";
             break;
-        case CMD_LIST:
+        case CMD_LIST: 
             listNetworkPCs();
             break;
         case CMD_AWAKE:

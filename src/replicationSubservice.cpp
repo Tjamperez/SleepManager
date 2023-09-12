@@ -90,6 +90,7 @@ unsigned int ReplicationSubservice::copyNetwork(unsigned long long version, std:
 
 void ReplicationSubservice::syncList()
 {
+    
     unsigned int pcListSize = pcList.size();
     std::vector<NetworkPC> newList(pcListSize);
     listVersion = pcListSize > 0 ? pcList[0].version : listVersion;
@@ -104,9 +105,10 @@ void ReplicationSubservice::syncList()
 
 void ReplicationSubservice::runLoop()
 {
-    while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
+    while (!ManagementSubservice::shouldShutDown)
     {
-        run();
+        if (!ManagementSubservice::inElection)
+            run();
     }
 }
 
@@ -114,6 +116,7 @@ void ReplicationSubservice::run()
 {
     if (!ManagementSubservice::isClient)
     {
+            std::cout << "Starting serverside replication\n";
             int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
             if (sockfd == -1) {
                 std::cerr << "Error creating socket" << std::endl;
@@ -138,7 +141,7 @@ void ReplicationSubservice::run()
             basePacket packet;
 
             std::cout << "Started server replication.\n";
-            while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
+            while (!ManagementSubservice::isClient && !ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
             {
                 listVersion += 1;
 
@@ -161,7 +164,7 @@ void ReplicationSubservice::run()
                     packet.type = PTYPE_LIST_ELEMENT;
                     packet.timestamp = (unsigned long long)(listVersion);
                     serializePCListElement(pcList[i], packet);
-                    std::cout << "Sending " << pcList[i].position << " IP:" << pcList[i].ip << " Version: " << listVersion <<".\n";
+                    //std::cout << "Sending " << pcList[i].position << " IP:" << pcList[i].ip << " Version: " << listVersion <<".\n";
                     WebServices::sendBroadcast(sockfd, address, packet);
                     usleep(100);
                 }
@@ -213,7 +216,7 @@ void ReplicationSubservice::run()
         char buffer[BUFFER_SIZE];
         socklen_t sz = sizeof(address);
             // receive list element
-        while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
+        while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection && ManagementSubservice::isClient)
         {
             //std::cout << "Waiting for broadcast.\n";
             basePacket packet;
@@ -269,7 +272,7 @@ void ReplicationSubservice::run()
             {
                 listElement element = deserializePCListElement(packet);
                 unsigned long long position = element.position;
-                std::cout << "Received element " << element.position << " with ip: " << element.ip << " Version:" << element.version << "\n";
+                //std::cout << "Received element " << element.position << " with ip: " << element.ip << " Version:" << element.version << "\n";
             if (position < pcList.size())
             {
                 if (pcList[position].version < newVersion || (pcList[position].version > 65000 && newVersion < 200))
@@ -286,8 +289,9 @@ void ReplicationSubservice::run()
             break;
             case PTYPE_LIST_END:
             {
-                std::cout << "End of list.\n";
+                //std::cout << "End of list.\n";
                 syncList();
+                usleep(400);
             }
             break;
             dafault:

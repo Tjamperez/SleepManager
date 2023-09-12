@@ -204,7 +204,7 @@ int DiscoverySubservice::InitializeClient()
         if (WebServices::sendBroadcast(sockfd, WebServices::server_addr, p))
         {
             // Esperar resposta do server
-            rtPacket = WebServices::waitForResponse(sockfd, WebServices::server_addr, 1000);
+            rtPacket = WebServices::waitForResponse(sockfd, WebServices::server_addr, 1000, &WebServices::server_addr);
             if (rtPacket.type == PTYPE_DISCOVERY_ACK)
             {
                 serverFound = true;

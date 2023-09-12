@@ -20,7 +20,7 @@ void ElectionMonitor::electionMonitoring()
     while(!ManagementSubservice::shouldShutDown){
 
         if(!ManagementSubservice::inElection){
-            basePacket electionPacket = WebServices::waitForResponse(sockfd, election_addr, 4000);
+            basePacket electionPacket = WebServices::waitForResponse(sockfd, election_addr, 4000, nullptr);
             if(electionPacket.type == PTYPE_ELECTION_REQUEST){
                 ManagementSubservice::startElection();
             }

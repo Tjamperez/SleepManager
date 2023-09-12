@@ -15,7 +15,7 @@ MonitoringSubservice::~MonitoringSubservice()
 
 int MonitoringSubservice::runMonitoringServer()
 {
-    runMonitor = 1;
+    std::cout << "Starting monitoring server\n";
     int sockfd;
     struct sockaddr_in server_addr;
 
@@ -30,9 +30,16 @@ int MonitoringSubservice::runMonitoringServer()
     request.type = PTYPE_MONITOR_PROBE;
     while (!ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection && !ManagementSubservice::isClient)
     {
+        //std::cout<<"IN WHILE2\n";
         std::vector<NetworkPC> network = ManagementSubservice::getNetwork();
         for (unsigned long int i = 0; i < network.size(); i++)
         {
+            if (WebServices::getIPAddress() == network[i].getIP())
+            {
+                ManagementSubservice::setPCStatus(network[i].getIP(), network[i].getMAC(), STATUS_AWAKE);
+                continue;
+            }
+            
             struct sockaddr_in client_addr;
             memset(&client_addr, 0, sizeof(client_addr));
             client_addr.sin_family = AF_INET;
@@ -44,25 +51,28 @@ int MonitoringSubservice::runMonitoringServer()
             char* reqPacket = WebServices::serializePacket(request);
             ssize_t sent_bytes = sendto(sockfd, reqPacket, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
 
-            basePacket response = WebServices::waitForResponse(sockfd, client_addr, 500);
+            basePacket response = WebServices::waitForResponse(sockfd, client_addr, 500, nullptr);
 
             if (response.type != PTYPE_MONITORING_PROBE_RESP)
             {
                 sent_bytes = sendto(sockfd, reqPacket, PACKET_SIZE, 0, (struct sockaddr *)&client_addr, client_len);
-                response = WebServices::waitForResponse(sockfd, client_addr, 500);
+                response = WebServices::waitForResponse(sockfd, client_addr, 500, nullptr);
 
                 if (response.type != PTYPE_MONITORING_PROBE_RESP)
                 {
                     ManagementSubservice::setPCStatus(network[i].getIP(), network[i].getMAC(), STATUS_SLEEPING);
+                    //std::cout << "Is asleep\n";
                 }
                 else
                 {
                     ManagementSubservice::setPCStatus(network[i].getIP(), network[i].getMAC(), STATUS_AWAKE);
+                    //std::cout << "Received probe response\n";
                 }
             }
             else
             {
                 ManagementSubservice::setPCStatus(network[i].getIP(), network[i].getMAC(), STATUS_AWAKE);
+                //std::cout << "Received probe response\n";
             }
             //std::cerr << "PTYPE: " << packetTypesNames[response.type] << "\n";
         }
@@ -113,7 +123,6 @@ int MonitoringSubservice::runMonitoringServer()
         }*/
 
 
-
     close(sockfd);
 
     std::cerr << "Returning from monitoring server\n";
@@ -137,6 +146,7 @@ int MonitoringSubservice::runMonitoringSubservice(){
 
 int MonitoringSubservice::runMonitoringClient()
 {
+    std::cout << "Starting monitoring client\n";
     int sockfd;
     struct sockaddr_in myAddr;
     memset(&myAddr, 0, sizeof(myAddr));
@@ -193,16 +203,43 @@ int MonitoringSubservice::runMonitoringClient()
 
     while (ManagementSubservice::isClient && !ManagementSubservice::shouldShutDown && !ManagementSubservice::inElection)
     {
-        received = WebServices::waitForResponse(sockfd, newServer, 8000000);
-
+        //std::cout << "WAITING\n";
+        received = WebServices::waitForResponse(sockfd, newServer, 100000, &newServer);
+        //std::cout<<"IN WHILE\n";
         if (received.type == PTYPE_NULL)
         {
             std::cout << "Starting election\n";
             ManagementSubservice::startElection();
+            continue;
+        }
+        if (received.type == PTYPE_MONITOR_PROBE)
+        {
+            char srvIP[32];
+            char nsrvIP[32];
+            inet_ntop(AF_INET, &WebServices::server_addr.sin_addr, srvIP, sizeof(buffer));
+            inet_ntop(AF_INET, &newServer.sin_addr, nsrvIP, sizeof(buffer));
+
+            if (strcmp(srvIP, nsrvIP) == 0)
+            {
+                //std::cout << "Same IP\n";
+                WebServices::server_addr = newServer;
+            }
+            else
+            {
+                ManagementSubservice::startElection();
+                continue;
+            }
+
+            
+            ssize_t sent_bytes = sendto(sockfd, response, PACKET_SIZE, 0, (struct sockaddr *)&WebServices::server_addr, server_len);
+            if (sent_bytes < 0)
+            {
+                perror("Error sending probe response");
+            }
         }
     }
     close(sockfd);
-    std::cout << "Stopped monitoring.\n";
+    std::cout << "Stopped client monitoring.\n";
     return 0;
 }
 

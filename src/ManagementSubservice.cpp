@@ -100,7 +100,7 @@ void ManagementSubservice::startElection()
             WebServices::startTimer();
             while (inElection and !(WebServices::hasElapsed(allottedTimeMicros))) 
             {
-                basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 80);
+                basePacket receivedPacket = WebServices::waitForResponse(sockfd, receptorAddr, 80, nullptr);
                
                 if (receivedPacket.type == PTYPE_NULL) 
                 {
@@ -167,9 +167,12 @@ void ManagementSubservice::startElection()
             if (receivedPacket.type == PTYPE_VICTORY_NOTIFICATION)
             {
                 WebServices::server_addr = receptorAddr;
+                isClient = true;
+                inElection = false;
                 std::cout << "Received leader\n";
             }
         }
+        close(sockfd);
 
             // After processing all responses, determine the outcome of the election
             // by finding the highest machine ID among the received responses.
